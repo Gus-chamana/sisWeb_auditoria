@@ -1,16 +1,107 @@
 "use client";
 
 import React, { useState } from "react";
-import { RefreshCw, Download, Printer } from "lucide-react";
+import { RefreshCw, Download, Printer, FileText } from "lucide-react";
+import { FormatoVisitaUTP } from "@/components/Diseño/FormatoPDF/FormatoVisitaUTP";
 
 export default function ReportesPage() {
   const [period, setPeriod] = useState("2026-i");
-  const [sede, setSede] = useState("todas");
+  const [sede, setSede] = useState("central");
+  const [templateMode, setTemplateMode] = useState<"filled" | "empty">("filled");
+
+  // Handler for printing
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // Mock data tailored to user selections
+  const getSedeName = (id: string) => {
+    switch (id) {
+      case "central":
+        return "Sede Central - Lima";
+      case "norte":
+        return "Sede Norte - Los Olivos";
+      case "sur":
+        return "Sede Sur - Chorrillos";
+      default:
+        return "Red Nacional - UTP";
+    }
+  };
+
+  const getDocenteName = (sedeId: string) => {
+    switch (sedeId) {
+      case "central":
+        return "Dr. Ing. Hugo Cabrera Rojas";
+      case "norte":
+        return "Mag. Elena Valenzuela Soto";
+      case "sur":
+        return "Ing. Carlos Alberto Mendoza Ortiz";
+      default:
+        return "Docente Auditor Asignado";
+    }
+  };
+
+  const getAsignatura = (sedeId: string) => {
+    switch (sedeId) {
+      case "central":
+        return "Arquitectura de Software (12402)";
+      case "norte":
+        return "Ingeniería de Requerimientos (12405)";
+      case "sur":
+        return "Diseño y Patrones de Software (12410)";
+      default:
+        return "Desarrollo de Software Avanzado";
+    }
+  };
+
+  // Generate audit data based on state
+  const reportData = templateMode === "filled" ? {
+    fechaVisita: "22/06/2026",
+    horaInicio: "19:00",
+    horaTermino: "20:30",
+    sedeFilial: getSedeName(sede),
+    ciclo: period === "2026-i" ? "2026-I" : period === "2025-ii" ? "2025-II" : "2025-I",
+    turno: "Noche",
+    asignatura: getAsignatura(sede),
+    campoFormativo: "Ingeniería de Software / Tecnologías de la Información",
+    semanaNo: "12",
+    horaPracticaTeoria: "Teoría y Práctica Integrada",
+    lugarVisita: "Aula B-402 (Laboratorio de Cómputo)",
+
+    docenteNombre: getDocenteName(sede),
+    docentePresente: "SI" as const,
+    horarioProgramado: "Cumple" as const,
+    interaccion: "SI" as const,
+    actividad: "Exposición de patrones estructurales y desarrollo guiado de taller práctico en la nube.",
+    obs1: "El docente inició sesión puntualmente y brindó soporte personalizado a los equipos de desarrollo.",
+
+    materialCargado: "CUMPLE" as const,
+    obs2: "Las diapositivas y el laboratorio práctico estaban subidos a la plataforma Canvas desde las 08:00 hrs del mismo día.",
+
+    asistenciaAmbiente: "Cumple" as const,
+    asistenciaAmbienteObs: "28 estudiantes presentes en laboratorio.",
+    asistenciaIntranet: "Cumple" as const,
+    asistenciaIntranetObs: "Asistencia registrada en portal docente.",
+    obs3: "La lista de asistencia física concuerda plenamente con el reporte del sistema intranet.",
+
+    silaboCoincide: "CUMPLE" as const,
+    temaAnteriorCoincide: "CUMPLE" as const,
+    ingresoSilaboVirtual: "CUMPLE" as const,
+    obs4: "Avance temático según cronograma del sílabo oficial.",
+
+    guiaPractica: "CUMPLE" as const,
+    logroMedir: "CUMPLE" as const,
+    rubricaEvaluacion: "CUMPLE" as const,
+    obs5: "Se utilizó la rúbrica del laboratorio 3 cargada en Canvas. Los estudiantes mostraron dominio del logro planteado.",
+
+    responsableActividad: "Mg. Luis Ernesto Quispe (Auditor Interno de Calidad)",
+    requerimientosSolicitados: "Verificación de portafolio docente digital, silabo en físico y revisión del aula virtual en tiempo real.",
+  } : {}; // Empty for manual filling
 
   return (
     <div className="space-y-8 font-inter">
-      {/* Header Info */}
-      <div>
+      {/* Header Info (Hidden when printing) */}
+      <div className="no-print">
         <h1 className="text-28 font-bold font-poppins text-sivac-light">
           Centro de Reportes
         </h1>
@@ -19,13 +110,13 @@ export default function ReportesPage() {
         </p>
       </div>
 
-      {/* Control Panel Card */}
-      <div className="admin-card p-6 space-y-6">
+      {/* Control Panel Card (Hidden when printing) */}
+      <div className="admin-card p-6 space-y-6 no-print">
         <h3 className="text-16 font-bold text-sivac-light">
           Filtros del Reporte
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
           {/* Dropdown 1: Periodo */}
           <div className="space-y-2">
             <label className="block text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">
@@ -52,11 +143,43 @@ export default function ReportesPage() {
               onChange={(e) => setSede(e.target.value)}
               className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-sivac-border-card rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue"
             >
-              <option value="todas">Todas las sedes</option>
               <option value="central">Sede Central Lima</option>
               <option value="norte">Sede Norte Los Olivos</option>
               <option value="sur">Sede Sur Chorrillos</option>
             </select>
+          </div>
+
+          {/* Toggle 3: Plantilla vs Lleno */}
+          <div className="space-y-2">
+            <label className="block text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">
+              Tipo de Documento
+            </label>
+            <div className="flex h-[44px] rounded-lg border border-sivac-border-card p-1 bg-sivac-bg-input-admin">
+              <button
+                type="button"
+                onClick={() => setTemplateMode("filled")}
+                className={`flex-1 flex items-center justify-center gap-1.5 rounded-md text-12 font-bold transition-all ${
+                  templateMode === "filled"
+                    ? "bg-sivac-blue text-white"
+                    : "text-sivac-muted hover:text-sivac-light"
+                }`}
+              >
+                <FileText size={14} />
+                <span>Reporte Lleno</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTemplateMode("empty")}
+                className={`flex-1 flex items-center justify-center gap-1.5 rounded-md text-12 font-bold transition-all ${
+                  templateMode === "empty"
+                    ? "bg-sivac-blue text-white"
+                    : "text-sivac-muted hover:text-sivac-light"
+                }`}
+              >
+                <FileText size={14} />
+                <span>Plantilla Vacía</span>
+              </button>
+            </div>
           </div>
 
           {/* Action Buttons Container */}
@@ -66,7 +189,7 @@ export default function ReportesPage() {
               className="flex-1 h-[44px] bg-sivac-blue hover:bg-blue-700 rounded-lg text-14 text-sivac-surface transition-colors font-bold uppercase tracking-wide-06 flex items-center justify-center gap-2"
             >
               <RefreshCw size={16} strokeWidth={2.5} />
-              <span>Generar</span>
+              <span>Actualizar</span>
             </button>
             <button
               type="button"
@@ -81,113 +204,23 @@ export default function ReportesPage() {
 
       {/* Preview Section */}
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center no-print">
           <h2 className="text-18 font-bold text-sivac-light">
-            Vista Previa del Documento
+            Vista Previa del Formato Oficial UTP
           </h2>
           <button
             type="button"
-            className="text-13 text-sivac-indigo hover:text-sivac-heading font-semibold flex items-center gap-1.5 transition-colors"
+            onClick={handlePrint}
+            className="text-13 text-sivac-indigo hover:text-sivac-heading font-semibold flex items-center gap-1.5 transition-colors border border-sivac-border-card hover:bg-sivac-bg-secondary/20 px-3 py-1.5 rounded-lg"
           >
             <Printer size={16} strokeWidth={2} />
-            <span>Imprimir Reporte</span>
+            <span>Imprimir Formato</span>
           </button>
         </div>
 
-        {/* PDF Style Preview Box (White Background) */}
-        <div className="bg-white rounded-xl shadow-2xl p-8 sm:p-12 text-gray-900 border border-gray-200 min-h-[600px] flex flex-col justify-between max-w-4xl mx-auto font-sans">
-          {/* PDF Header */}
-          <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6">
-            <div>
-              <p className="text-12 font-bold tracking-widest text-blue-800 uppercase">
-                SIVAC SYSTEM
-              </p>
-              <h2 className="text-22 font-extrabold tracking-tight mt-1">
-                REPORTE DE CUMPLIMIENTO ACADÉMICO
-              </h2>
-              <p className="text-12 text-gray-500 mt-1">
-                Generado automáticamente por la Plataforma de Auditoría
-              </p>
-            </div>
-            {/* Mock Logo Box */}
-            <div className="w-14 h-14 bg-gray-100 rounded border border-gray-300 flex items-center justify-center font-bold text-gray-400 text-12 text-center uppercase p-1">
-              LOGO INST.
-            </div>
-          </div>
-
-          {/* PDF Meta Info */}
-          <div className="grid grid-cols-2 gap-4 text-13 my-6 border-b border-gray-100 pb-4">
-            <div>
-              <p className="text-gray-500">Periodo Académico:</p>
-              <p className="font-bold text-gray-800 uppercase">{period === "2026-i" ? "Ciclo 2026-I" : period === "2025-ii" ? "Ciclo 2025-II" : "Ciclo 2025-I"}</p>
-            </div>
-            <div>
-              <p className="text-gray-500">Sede Evaluada:</p>
-              <p className="font-bold text-gray-800 uppercase">{sede === "todas" ? "Todas las sedes (Red Nacional)" : sede === "central" ? "Sede Central Lima" : sede === "norte" ? "Sede Norte Los Olivos" : "Sede Sur Chorrillos"}</p>
-            </div>
-            <div>
-              <p className="text-gray-500">Fecha de Generación:</p>
-              <p className="font-bold text-gray-800">14/05/2026</p>
-            </div>
-            <div>
-              <p className="text-gray-500">Estado General:</p>
-              <p className="font-bold text-green-700">COMPLETADO (94.2%)</p>
-            </div>
-          </div>
-
-          {/* PDF Report Body Content */}
-          <div className="flex-1 space-y-6">
-            <div>
-              <h4 className="text-14 font-bold text-gray-800 uppercase tracking-wider mb-2">
-                1. Resumen Ejecutivo
-              </h4>
-              <p className="text-13 text-gray-600 leading-relaxed">
-                Durante el ciclo académico evaluado, se ha procedido con la inspección en aula de los docentes asignados en la muestra aleatoria institucional. El índice promedio de cumplimiento general alcanza el <span className="font-bold text-gray-800">94.2%</span>, lo cual representa una mejora progresiva del <span className="font-bold text-gray-800">2.1%</span> frente a los periodos evaluados anteriormente.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="text-14 font-bold text-gray-800 uppercase tracking-wider mb-2">
-                2. Tabla de Indicadores Clave
-              </h4>
-              <table className="w-full text-left text-12 border-collapse mt-2">
-                <thead>
-                  <tr className="bg-gray-150 border-b border-gray-300">
-                    <th className="py-2 px-3 font-bold text-gray-700">Sede</th>
-                    <th className="py-2 px-3 font-bold text-gray-700 text-center">Visitas Programadas</th>
-                    <th className="py-2 px-3 font-bold text-gray-700 text-center">Completadas</th>
-                    <th className="py-2 px-3 font-bold text-gray-700 text-right">Índice Aprobación</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  <tr>
-                    <td className="py-2 px-3 text-gray-800 font-semibold">Sede Central</td>
-                    <td className="py-2 px-3 text-center text-gray-600">45</td>
-                    <td className="py-2 px-3 text-center text-gray-600">42</td>
-                    <td className="py-2 px-3 text-right font-bold text-green-600">92.0%</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3 text-gray-800 font-semibold">Sede Norte</td>
-                    <td className="py-2 px-3 text-center text-gray-600">30</td>
-                    <td className="py-2 px-3 text-center text-gray-600">28</td>
-                    <td className="py-2 px-3 text-right font-bold text-green-600">85.0%</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3 text-gray-800 font-semibold">Sede Sur</td>
-                    <td className="py-2 px-3 text-center text-gray-600">25</td>
-                    <td className="py-2 px-3 text-center text-gray-600">20</td>
-                    <td className="py-2 px-3 text-right font-bold text-green-600">95.0%</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* PDF Signature / Footer */}
-          <div className="border-t border-gray-200 pt-6 mt-8 flex justify-between items-center text-11 text-gray-400">
-            <p>© 2026 SIVAC. Todos los derechos reservados.</p>
-            <p>Página 1 de 1</p>
-          </div>
+        {/* Paper Container (White container simulating A4 sheet on web UI) */}
+        <div className="bg-gray-100 p-4 sm:p-8 rounded-xl border border-sivac-border-card flex justify-center overflow-auto print:bg-white print:p-0 print:border-0">
+          <FormatoVisitaUTP {...reportData} />
         </div>
       </div>
     </div>
