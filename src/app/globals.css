@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: var(--font-inter), sans-serif;
+    background-color: #0d141d;
+    color: #dce3f0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Scrollbar styling for dark theme */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #151c25;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #434655;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #5a5d6e;
+  }
+}
+
+@layer components {
+  /* Glass card effect (login stats) */
+  .glass-card {
+    background: rgba(46, 53, 63, 0.16);
+    border: 1px solid rgba(67, 70, 85, 0.25);
+    border-radius: 8px;
+    backdrop-filter: blur(10.5px);
+    -webkit-backdrop-filter: blur(10.5px);
+  }
+
+  /* Admin card */
+  .admin-card {
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 8px;
+  }
+
+  /* Input base style login */
+  .input-login {
+    background: #080f17;
+    border: 1px solid #434655;
+    border-radius: 4px;
+    color: #dce3f0;
+    font-family: var(--font-inter), sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+  .input-login:focus {
+    border-color: #2563eb;
+  }
+  .input-login::placeholder {
+    color: #434655;
+  }
+
+  /* Input base style admin */
+  .input-admin {
+    background: #111827;
+    border: 1px solid #374151;
+    border-radius: 6px;
+    color: #f3f4f6;
+    font-family: var(--font-inter), sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+  .input-admin:focus {
+    border-color: #3b82f6;
+  }
+  .input-admin::placeholder {
+    color: #9ca3af;
+  }
+
+  /* Active nav link */
+  .nav-link-active {
+    background: rgba(37, 99, 235, 0.012);
+    border: 1px solid #b4c5ff;
+  }
+
+  /* Badge base */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-inter), sans-serif;
+  }
+}

@@ -1,0 +1,29 @@
+"use client";
+
+import React from "react";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { Header } from "@/components/layout/Header";
+
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-h-screen bg-sivac-bg-primary text-sivac-light font-inter">
+      {/* Sidebar */}
+      <Sidebar />
+
+      {/* Main Content Area */}
+      <div className="pl-280 flex flex-col min-h-screen">
+        {/* Header */}
+        <Header />
+
+        {/* Dynamic Page Content */}
+        <main className="flex-1 p-8 overflow-y-auto">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
