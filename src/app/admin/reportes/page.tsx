@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Search,
   Filter,
@@ -18,13 +18,15 @@ import {
   Layers,
   RotateCcw,
   Sparkles,
-  BookOpen
+  BookOpen,
+  Loader2,
 } from "lucide-react";
-import { FormatoVisitaUTP } from "@/components/Diseño/FormatoPDF/FormatoVisitaUTP";
+import { FormatoVisitaUTP, type FormatoVisitaUTPProps } from "@/components/Diseño/FormatoPDF/FormatoVisitaUTP";
 import { useAuth } from "@/lib/AuthContext";
+import { createClient } from "@/utils/supabase/client";
 
 // -----------------------------------------------------------
-// Base de datos de auditorías (Mock)
+// Interfaz para los registros de auditoría desde Supabase
 // -----------------------------------------------------------
 interface AuditRecord {
   id: string;
@@ -33,257 +35,141 @@ interface AuditRecord {
   asignatura: string;
   docenteNombre: string;
   docenteId: string;
+  auditorNombre: string;
   sedeFilial: string;
   ciclo: string;
   turno: string;
   fechaVisita: string;
   horaInicio: string;
   horaTermino: string;
-  estado: "Cumplido" | "Pendiente";
-  
-  // Detalle del formato de auditoría
-  docentePresente?: "SI" | "NO" | "";
-  horarioProgramado?: "Cumple" | "No Cumple" | "";
-  interaccion?: "SI" | "NO" | "";
-  actividad?: string;
-  obs1?: string;
-  materialCargado?: "CUMPLE" | "NO CUMPLE" | "";
-  obs2?: string;
-  asistenciaAmbiente?: "Cumple" | "No cumple" | "";
-  asistenciaAmbienteObs?: string;
-  asistenciaIntranet?: "Cumple" | "No cumple" | "";
-  asistenciaIntranetObs?: string;
-  obs3?: string;
-  silaboCoincide?: "CUMPLE" | "NO CUMPLE" | "";
-  temaAnteriorCoincide?: "CUMPLE" | "NO CUMPLE" | "";
-  ingresoSilaboVirtual?: "CUMPLE" | "NO CUMPLE" | "";
-  obs4?: string;
-  guiaPractica?: "CUMPLE" | "NO CUMPLE" | "NO APLICA" | "";
-  logroMedir?: "CUMPLE" | "NO CUMPLE" | "NO APLICA" | "";
-  rubricaEvaluacion?: "CUMPLE" | "NO CUMPLE" | "NO APLICA" | "";
-  obs5?: string;
-  responsableActividad?: string;
-  requerimientosSolicitados?: string;
+  estado: "Cumplido" | "Pendiente" | "En progreso" | "Observada";
+  semanaNo: string;
+  campoFormativo: string;
+  horasPracticaTeoria: string;
+  requerimientosSolicitados: string;
+
+  // Detalle de evaluaciones (se cargan bajo demanda)
+  evalControl?: {
+    presente_id: number | null;
+    horario_id: number | null;
+    interaccion_id: number | null;
+    actividad_detalle: string | null;
+    observaciones: string | null;
+  } | null;
+  evalAcademica?: {
+    material_cumple_id: number | null;
+    obs_material: string | null;
+    silabo_coincide_actual_id: number | null;
+    silabo_coincide_anterior_id: number | null;
+    silabo_virtual_id: number | null;
+    obs_avance_silabico: string | null;
+  } | null;
+  evalAsistencia?: {
+    ambiente_cumple_id: number | null;
+    intranet_cumple_id: number | null;
+    observaciones: string | null;
+  } | null;
+  evalGuia?: {
+    cumple_tema_id: number | null;
+    evidencia_logro_id: number | null;
+    cuenta_rubrica_id: number | null;
+    observaciones: string | null;
+  } | null;
 }
 
-const MOCK_AUDITS: AuditRecord[] = [
-  {
-    id: "visit-1",
-    aula: "Aula B-402",
-    laboratorio: "Laboratorio de Cómputo",
-    asignatura: "Arquitectura de Software (12402)",
-    docenteNombre: "Dr. Ing. Hugo Cabrera Rojas",
-    docenteId: "DOC-1021",
-    sedeFilial: "Sede Central - Lima",
-    ciclo: "2026-I",
-    turno: "Noche",
-    fechaVisita: "22/06/2026",
-    horaInicio: "19:00",
-    horaTermino: "20:30",
-    estado: "Cumplido",
-    docentePresente: "SI",
-    horarioProgramado: "Cumple",
-    interaccion: "SI",
-    actividad: "Exposición de patrones estructurales y desarrollo guiado de taller práctico en la nube.",
-    obs1: "El docente inició sesión puntualmente y brindó soporte personalizado a los equipos de desarrollo.",
-    materialCargado: "CUMPLE",
-    obs2: "Las diapositivas y el laboratorio práctico estaban subidos a la plataforma Canvas desde las 08:00 hrs del mismo día.",
-    asistenciaAmbiente: "Cumple",
-    asistenciaAmbienteObs: "28 estudiantes presentes en laboratorio.",
-    asistenciaIntranet: "Cumple",
-    asistenciaIntranetObs: "Asistencia registrada en portal docente.",
-    obs3: "La lista de asistencia física concuerda plenamente con el reporte del sistema intranet.",
-    silaboCoincide: "CUMPLE",
-    temaAnteriorCoincide: "CUMPLE",
-    ingresoSilaboVirtual: "CUMPLE",
-    obs4: "Avance temático según cronograma del sílabo oficial.",
-    guiaPractica: "CUMPLE",
-    logroMedir: "CUMPLE",
-    rubricaEvaluacion: "CUMPLE",
-    obs5: "Se utilizó la rúbrica del laboratorio 3 cargada en Canvas. Los estudiantes mostraron dominio del logro planteado.",
-    responsableActividad: "Mg. Luis Ernesto Quispe (Auditor Interno de Calidad)",
-    requerimientosSolicitados: "Verificación de portafolio docente digital, silabo en físico y revisión del aula virtual en tiempo real.",
-  },
-  {
-    id: "visit-2",
-    aula: "Aula A-301",
-    laboratorio: "Laboratorio Químico",
-    asignatura: "Ingeniería de Requerimientos (12405)",
-    docenteNombre: "Mag. Elena Valenzuela Soto",
-    docenteId: "DOC-4502",
-    sedeFilial: "Sede Norte - Los Olivos",
-    ciclo: "2026-I",
-    turno: "Tarde",
-    fechaVisita: "23/06/2026",
-    horaInicio: "15:00",
-    horaTermino: "16:30",
-    estado: "Cumplido",
-    docentePresente: "SI",
-    horarioProgramado: "Cumple",
-    interaccion: "SI",
-    actividad: "Talleres prácticos grupales de diagramas de casos de uso y especificaciones técnicas.",
-    obs1: "Sesión interactiva dinámica. Los alumnos participaron activamente en la pizarra interactiva.",
-    materialCargado: "CUMPLE",
-    obs2: "Guía de requerimientos y plantillas publicadas en Canvas con anterioridad.",
-    asistenciaAmbiente: "Cumple",
-    asistenciaAmbienteObs: "22 alumnos en el laboratorio físico.",
-    asistenciaIntranet: "Cumple",
-    asistenciaIntranetObs: "Marcación y control en Intranet correcto.",
-    obs3: "Sincronización del 100% de asistencia entre presencial e intranet.",
-    silaboCoincide: "CUMPLE",
-    temaAnteriorCoincide: "CUMPLE",
-    ingresoSilaboVirtual: "CUMPLE",
-    obs4: "Seguimiento correcto del plan curricular semanal.",
-    guiaPractica: "CUMPLE",
-    logroMedir: "CUMPLE",
-    rubricaEvaluacion: "NO APLICA",
-    obs5: "No se programó evaluación para esta sesión. Se utilizó rúbrica formativa general.",
-    responsableActividad: "Mg. Carlos Mendoza Ortiz (Auditor Académico)",
-    requerimientosSolicitados: "Plantilla del proyecto grupal, rúbricas de retroalimentación de Canvas.",
-  },
-  {
-    id: "visit-3",
-    aula: "Aula C-102",
-    laboratorio: "Aula Multiuso",
-    asignatura: "Diseño y Patrones de Software (12410)",
-    docenteNombre: "Ing. Carlos Alberto Mendoza Ortiz",
-    docenteId: "DOC-2309",
-    sedeFilial: "Sede Sur - Chorrillos",
-    ciclo: "2025-II",
-    turno: "Mañana",
-    fechaVisita: "15/11/2025",
-    horaInicio: "09:00",
-    horaTermino: "10:30",
-    estado: "Cumplido",
-    docentePresente: "SI",
-    horarioProgramado: "Cumple",
-    interaccion: "SI",
-    actividad: "Exposición de patrones creacionales Singleton y Factory Method con ejemplos en Java.",
-    obs1: "El docente llegó 5 minutos antes para verificar proyectores y equipos.",
-    materialCargado: "CUMPLE",
-    obs2: "Repositorio GitHub del curso actualizado y disponible para los estudiantes.",
-    asistenciaAmbiente: "Cumple",
-    asistenciaAmbienteObs: "18 estudiantes asistentes.",
-    asistenciaIntranet: "Cumple",
-    asistenciaIntranetObs: "Sistema intranet validado.",
-    obs3: "Asistencia cuadrada perfectamente.",
-    silaboCoincide: "CUMPLE",
-    temaAnteriorCoincide: "CUMPLE",
-    ingresoSilaboVirtual: "CUMPLE",
-    obs4: "Avance acorde con cronograma de la semana 8.",
-    guiaPractica: "CUMPLE",
-    logroMedir: "CUMPLE",
-    rubricaEvaluacion: "CUMPLE",
-    obs5: "Rúbrica de la T1 mostrada a los estudiantes al inicio de clase.",
-    responsableActividad: "Dra. Ana Martínez Ruiz (Supervisora de Calidad)",
-    requerimientosSolicitados: "Sílabo impreso y código fuente de ejemplos prácticos.",
-  },
-  {
-    id: "visit-4",
-    aula: "Aula A-101",
-    laboratorio: "Laboratorio de Base de Datos",
-    asignatura: "Base de Datos I (11029)",
-    docenteNombre: "María García López",
-    docenteId: "DOC-7834", // Coincide con docente actual si ROL_ACTIVO === 'Docente'
-    sedeFilial: "Sede Norte - Los Olivos",
-    ciclo: "2026-I",
-    turno: "Noche",
-    fechaVisita: "20/06/2026",
-    horaInicio: "19:00",
-    horaTermino: "20:30",
-    estado: "Cumplido",
-    docentePresente: "SI",
-    horarioProgramado: "Cumple",
-    interaccion: "SI",
-    actividad: "Modelado de diagramas entidad-relación y normalización hasta 3FN.",
-    obs1: "Explicación fluida y con participación activa en pizarra y software de diagramación.",
-    materialCargado: "CUMPLE",
-    obs2: "Diapositivas y casos prácticos cargados correctamente en Canvas.",
-    asistenciaAmbiente: "Cumple",
-    asistenciaAmbienteObs: "32 alumnos presentes.",
-    asistenciaIntranet: "Cumple",
-    asistenciaIntranetObs: "Asistencia marcada a la hora de ingreso.",
-    obs3: "Tolerancia respetada y alumnos al día en asistencia virtual.",
-    silaboCoincide: "CUMPLE",
-    temaAnteriorCoincide: "CUMPLE",
-    ingresoSilaboVirtual: "CUMPLE",
-    obs4: "Se revisó avance según la semana 11 de la programación académica.",
-    guiaPractica: "CUMPLE",
-    logroMedir: "CUMPLE",
-    rubricaEvaluacion: "CUMPLE",
-    obs5: "Práctica dirigida calificada mediante rúbrica interactiva.",
-    responsableActividad: "Mg. Luis Ernesto Quispe (Auditor Interno de Calidad)",
-    requerimientosSolicitados: "Casos prácticos de normalización impresos y guías cargadas.",
-  },
-  {
-    id: "visit-5",
-    aula: "Aula B-205",
-    laboratorio: "Laboratorio Avanzado",
-    asignatura: "Calidad de Software (12480)",
-    docenteNombre: "Pedro Martínez Díaz",
-    docenteId: "DOC-9921",
-    sedeFilial: "Sede Central - Lima",
-    ciclo: "2026-I",
-    turno: "Tarde",
-    fechaVisita: "25/06/2026",
-    horaInicio: "17:00",
-    horaTermino: "18:30",
-    estado: "Pendiente",
-    docentePresente: "",
-    horarioProgramado: "",
-    interaccion: "",
-    actividad: "",
-    obs1: "",
-    materialCargado: "",
-    obs2: "",
-    asistenciaAmbiente: "",
-    asistenciaAmbienteObs: "",
-    asistenciaIntranet: "",
-    asistenciaIntranetObs: "",
-    obs3: "",
-    silaboCoincide: "",
-    temaAnteriorCoincide: "",
-    ingresoSilaboVirtual: "",
-    obs4: "",
-    guiaPractica: "",
-    logroMedir: "",
-    rubricaEvaluacion: "",
-    obs5: "",
-    responsableActividad: "",
-    requerimientosSolicitados: "",
-  }
-];
-
-// Helper para parsear DD/MM/YYYY a objeto Date
-const parseDateString = (dateStr: string): Date | null => {
-  if (!dateStr) return null;
-  const parts = dateStr.split("/");
-  if (parts.length === 3) {
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // 0-indexed
-    const year = parseInt(parts[2], 10);
-    return new Date(year, month, day);
-  }
-  return null;
+// -----------------------------------------------------------
+// Helpers: Mapeo de IDs de opciones_evaluacion a etiquetas
+// Basado en los IDs usados en el wizard de inspecciones:
+//   presente: 4=Presente/SI, 5=Ausente/NO
+//   horario: 6=Puntual/Cumple, 7=Impuntual/No Cumple
+//   interaccion: 8=Interactúa/SI, 9=No Interactúa/NO
+//   cumple genérico: 1=CUMPLE, 2=NO CUMPLE, 3=NO APLICA
+// -----------------------------------------------------------
+const mapPresente = (id: number | null | undefined): "SI" | "NO" | "" => {
+  if (id === 4) return "SI";
+  if (id === 5) return "NO";
+  return "";
 };
 
-// Helper para parsear YYYY-MM-DD a objeto Date
-const parseInputDateString = (dateStr: string): Date | null => {
-  if (!dateStr) return null;
-  const parts = dateStr.split("-");
-  if (parts.length === 3) {
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const day = parseInt(parts[2], 10);
-    return new Date(year, month, day);
+const mapHorario = (id: number | null | undefined): "Cumple" | "No Cumple" | "" => {
+  if (id === 6) return "Cumple";
+  if (id === 7) return "No Cumple";
+  return "";
+};
+
+const mapInteraccion = (id: number | null | undefined): "SI" | "NO" | "" => {
+  if (id === 8) return "SI";
+  if (id === 9) return "NO";
+  return "";
+};
+
+const mapCumple = (id: number | null | undefined): "CUMPLE" | "NO CUMPLE" | "" => {
+  if (id === 1) return "CUMPLE";
+  if (id === 2) return "NO CUMPLE";
+  return "";
+};
+
+const mapCumpleTriple = (id: number | null | undefined): "CUMPLE" | "NO CUMPLE" | "NO APLICA" | "" => {
+  if (id === 1) return "CUMPLE";
+  if (id === 2) return "NO CUMPLE";
+  if (id === 3) return "NO APLICA";
+  return "";
+};
+
+const mapAmbienteCumple = (id: number | null | undefined): "Cumple" | "No cumple" | "" => {
+  if (id === 1) return "Cumple";
+  if (id === 2) return "No cumple";
+  return "";
+};
+
+// Formato de fecha ISO (YYYY-MM-DD) a DD/MM/YYYY para el visor
+const formatDateDisplay = (dateStr: string | null | undefined): string => {
+  if (!dateStr) return "—";
+  try {
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
+  } catch {
+    return dateStr || "—";
   }
-  return null;
+};
+
+// Formato de hora (HH:MM:SS) a HH:MM
+const formatTimeDisplay = (timeStr: string | null | undefined): string => {
+  if (!timeStr) return "";
+  return timeStr.substring(0, 5);
+};
+
+// Mapear estado_id a texto legible
+const mapEstado = (estadoId: number | null | undefined): "Cumplido" | "Pendiente" | "En progreso" | "Observada" => {
+  if (estadoId === 1) return "Pendiente";
+  if (estadoId === 2) return "En progreso";
+  if (estadoId === 3) return "Cumplido";
+  if (estadoId === 4) return "Observada";
+  return "Pendiente";
 };
 
 export default function ReportesPage() {
   const { user, loading } = useAuth();
-  const [searchTerm, setSearchTerm] = useState("");
+  const supabase = createClient();
 
+  // --- Estado ---
+  const [audits, setAudits] = useState<AuditRecord[]>([]);
+  const [loadingAudits, setLoadingAudits] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sedeFilter, setSedeFilter] = useState("all");
+  const [stateFilter, setStateFilter] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [templateMode, setTemplateMode] = useState<"filled" | "empty">("filled");
+  const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
+  const [expandedAulas, setExpandedAulas] = useState<Record<string, boolean>>({});
+  const [checkedAuditIds, setCheckedAuditIds] = useState<string[]>([]);
+  const [sedes, setSedes] = useState<{ id: number; nombre: string }[]>([]);
+
+  // --- Loading guard ---
   if (loading || !user) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -295,35 +181,120 @@ export default function ReportesPage() {
 
   const ROL_ACTIVO = user.rol;
   const currentUser = user;
-  const [checkedAuditIds, setCheckedAuditIds] = useState<string[]>([]);
-  const [sedeFilter, setSedeFilter] = useState("all");
-  const [stateFilter, setStateFilter] = useState("all");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [templateMode, setTemplateMode] = useState<"filled" | "empty">("filled");
-  const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
-  const [expandedAulas, setExpandedAulas] = useState<Record<string, boolean>>({});
 
-  const toggleAulaExpand = (aula: string) => {
-    setExpandedAulas((prev) => ({
-      ...prev,
-      [aula]: !prev[aula],
-    }));
-  };
+  // --- Cargar sedes desde Supabase para los filtros dinámicos ---
+  const fetchSedes = useCallback(async () => {
+    const { data } = await supabase.from("sedes").select("id, nombre").order("nombre");
+    if (data) setSedes(data);
+  }, [supabase]);
 
-  // Filtrar registros según los roles del usuario logueado
-  const getAllowedAudits = () => {
-    if (ROL_ACTIVO === "Docente") {
-      // Docente solo puede ver sus propias visitas
-      return MOCK_AUDITS.filter((audit) => audit.docenteId === currentUser.id);
+  // --- Cargar las visitas y sus evaluaciones desde Supabase ---
+  const fetchAudits = useCallback(async () => {
+    setLoadingAudits(true);
+    try {
+      // Traer todas las visitas con sus relaciones
+      const { data: visitas, error } = await supabase
+        .from("visitas")
+        .select(`
+          id,
+          fecha_visita,
+          hora_inicio_real,
+          hora_termino_real,
+          ciclo,
+          turno,
+          semana_nro,
+          estado_id,
+          campo_formativo,
+          horas_teoria_practica,
+          requerimientos_solicitados,
+          sedes(id, nombre),
+          aulas(nombre),
+          asignaturas(nombre),
+          docente:usuarios!visitas_docente_id_fkey(id, nombres, apellidos),
+          auditor:usuarios!visitas_auditor_id_fkey(nombres, apellidos),
+          eval_control_docente(presente_id, horario_id, interaccion_id, actividad_detalle, observaciones),
+          eval_academica_detalle(material_cumple_id, obs_material, silabo_coincide_actual_id, silabo_coincide_anterior_id, silabo_virtual_id, obs_avance_silabico),
+          eval_asistencia(ambiente_cumple_id, intranet_cumple_id, observaciones),
+          eval_guia_practica(cumple_tema_id, evidencia_logro_id, cuenta_rubrica_id, observaciones)
+        `)
+        .is("deleted_at", null)
+        .order("id", { ascending: false });
+
+      if (error) {
+        console.error("Error al cargar visitas para reportes:", error);
+        setLoadingAudits(false);
+        return;
+      }
+
+      if (!visitas) {
+        setAudits([]);
+        setLoadingAudits(false);
+        return;
+      }
+
+      const mapped: AuditRecord[] = visitas.map((v: any) => {
+        const docenteNombres = v.docente?.nombres || "";
+        const docenteApellidos = v.docente?.apellidos || "";
+        const docenteNombre = `${docenteNombres} ${docenteApellidos}`.trim() || "Docente sin asignar";
+
+        const auditorNombres = v.auditor?.nombres || "";
+        const auditorApellidos = v.auditor?.apellidos || "";
+        const auditorNombre = `${auditorNombres} ${auditorApellidos}`.trim() || "";
+
+        // eval_control_docente, eval_academica_detalle, etc. son objetos o arrays según Supabase
+        // Como la relación es 1:1 (visita_id es PK), Supabase retorna un objeto si existe
+        const evalControl = v.eval_control_docente || null;
+        const evalAcademica = v.eval_academica_detalle || null;
+        const evalAsistencia = v.eval_asistencia || null;
+        const evalGuia = v.eval_guia_practica || null;
+
+        return {
+          id: v.id.toString(),
+          aula: v.aulas?.nombre || "Aula no asignada",
+          laboratorio: v.aulas?.nombre || "",
+          asignatura: v.asignaturas?.nombre || "Asignatura no asignada",
+          docenteNombre,
+          docenteId: v.docente?.id?.toString() || "",
+          auditorNombre,
+          sedeFilial: v.sedes?.nombre || "Sede no asignada",
+          ciclo: v.ciclo || "",
+          turno: v.turno || "",
+          fechaVisita: formatDateDisplay(v.fecha_visita),
+          horaInicio: formatTimeDisplay(v.hora_inicio_real),
+          horaTermino: formatTimeDisplay(v.hora_termino_real),
+          estado: mapEstado(v.estado_id),
+          semanaNo: v.semana_nro?.toString() || "",
+          campoFormativo: v.campo_formativo || "Ingeniería de Software / Tecnologías de la Información",
+          horasPracticaTeoria: v.horas_teoria_practica || (v.turno === "Noche" ? "Teoría y Práctica Integrada" : "Práctica de Laboratorio"),
+          requerimientosSolicitados: v.requerimientos_solicitados || "",
+          evalControl,
+          evalAcademica,
+          evalAsistencia,
+          evalGuia,
+        };
+      });
+
+      // Si el rol es Docente, filtrar solo las visitas del docente actual
+      const finalAudits = ROL_ACTIVO === "Docente"
+        ? mapped.filter((a) => a.docenteId === currentUser.id)
+        : mapped;
+
+      setAudits(finalAudits);
+    } catch (err) {
+      console.error("Error al cargar auditorías:", err);
+    } finally {
+      setLoadingAudits(false);
     }
-    return MOCK_AUDITS;
-  };
+  }, [supabase, ROL_ACTIVO, currentUser.id]);
 
-  const allowedAudits = getAllowedAudits();
+  // --- Efectos ---
+  useEffect(() => {
+    fetchAudits();
+    fetchSedes();
+  }, [fetchAudits, fetchSedes]);
 
-  // Filtrado reactivo en base a filtros, búsquedas y rango de fechas
-  const filteredAudits = allowedAudits.filter((audit) => {
+  // --- Filtrado reactivo en cliente ---
+  const filteredAudits = audits.filter((audit) => {
     const matchesSearch =
       audit.aula.toLowerCase().includes(searchTerm.toLowerCase()) ||
       audit.docenteNombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -336,40 +307,59 @@ export default function ReportesPage() {
     const matchesState =
       stateFilter === "all" ||
       (stateFilter === "cumplido" && audit.estado === "Cumplido") ||
-      (stateFilter === "pendiente" && audit.estado === "Pendiente");
+      (stateFilter === "pendiente" && audit.estado === "Pendiente") ||
+      (stateFilter === "en_progreso" && audit.estado === "En progreso") ||
+      (stateFilter === "observada" && audit.estado === "Observada");
 
-    // Filtrar por rango de fechas
-    const auditDate = parseDateString(audit.fechaVisita);
-    const start = parseInputDateString(startDate);
-    const end = parseInputDateString(endDate);
+    // Filtrar por rango de fechas (la fecha está en DD/MM/YYYY)
+    if (startDate || endDate) {
+      const parts = audit.fechaVisita.split("/");
+      if (parts.length === 3) {
+        const auditDate = new Date(
+          parseInt(parts[2], 10),
+          parseInt(parts[1], 10) - 1,
+          parseInt(parts[0], 10)
+        );
 
-    if (auditDate) {
-      if (start && auditDate < start) return false;
-      if (end && auditDate > end) return false;
+        if (startDate) {
+          const sParts = startDate.split("-");
+          const start = new Date(parseInt(sParts[0], 10), parseInt(sParts[1], 10) - 1, parseInt(sParts[2], 10));
+          if (auditDate < start) return false;
+        }
+        if (endDate) {
+          const eParts = endDate.split("-");
+          const end = new Date(parseInt(eParts[0], 10), parseInt(eParts[1], 10) - 1, parseInt(eParts[2], 10));
+          if (auditDate > end) return false;
+        }
+      }
     }
 
     return matchesSearch && matchesSede && matchesState;
   });
 
+  // --- Agrupamiento por aula ---
   const groupedAudits = React.useMemo(() => {
     const groups: Record<string, AuditRecord[]> = {};
     filteredAudits.forEach((audit) => {
       const key = audit.aula;
-      if (!groups[key]) {
-        groups[key] = [];
-      }
+      if (!groups[key]) groups[key] = [];
       groups[key].push(audit);
     });
     return groups;
   }, [filteredAudits]);
 
-  // Limpiar IDs seleccionados que ya no están visibles debido a filtros
+  // --- Limpiar selecciones que desaparecen por filtro ---
   useEffect(() => {
     if (checkedAuditIds.length > 0) {
       const visibleIds = new Set(filteredAudits.map((a) => a.id));
       setCheckedAuditIds((prev) => prev.filter((id) => visibleIds.has(id)));
     }
   }, [filteredAudits]);
+
+  // --- Handlers de selección ---
+  const toggleAulaExpand = (aula: string) => {
+    setExpandedAulas((prev) => ({ ...prev, [aula]: !prev[aula] }));
+  };
 
   const handleToggleSelectAudit = (id: string) => {
     setCheckedAuditIds((prev) =>
@@ -398,48 +388,66 @@ export default function ReportesPage() {
     window.print();
   };
 
-  // Preparar la data para el componente de PDF
-  const getReportData = (audit: AuditRecord) => {
-    return templateMode === "filled"
-      ? {
-          fechaVisita: audit.fechaVisita,
-          horaInicio: audit.horaInicio,
-          horaTermino: audit.horaTermino,
-          sedeFilial: audit.sedeFilial,
-          ciclo: audit.ciclo,
-          turno: audit.turno,
-          asignatura: audit.asignatura,
-          campoFormativo: "Ingeniería de Software / Tecnologías de la Información",
-          semanaNo: "12",
-          horaPracticaTeoria: audit.turno === "Noche" ? "Teoría y Práctica Integrada" : "Práctica de Laboratorio",
-          lugarVisita: `${audit.aula} (${audit.laboratorio})`,
-          docenteNombre: audit.docenteNombre,
-          docentePresente: audit.docentePresente,
-          horarioProgramado: audit.horarioProgramado,
-          interaccion: audit.interaccion,
-          actividad: audit.actividad,
-          obs1: audit.obs1,
-          materialCargado: audit.materialCargado,
-          obs2: audit.obs2,
-          asistenciaAmbiente: audit.asistenciaAmbiente,
-          asistenciaAmbienteObs: audit.asistenciaAmbienteObs,
-          asistenciaIntranet: audit.asistenciaIntranet,
-          asistenciaIntranetObs: audit.asistenciaIntranetObs,
-          obs3: audit.obs3,
-          silaboCoincide: audit.silaboCoincide,
-          temaAnteriorCoincide: audit.temaAnteriorCoincide,
-          ingresoSilaboVirtual: audit.ingresoSilaboVirtual,
-          obs4: audit.obs4,
-          guiaPractica: audit.guiaPractica,
-          logroMedir: audit.logroMedir,
-          rubricaEvaluacion: audit.rubricaEvaluacion,
-          obs5: audit.obs5,
-          responsableActividad: audit.responsableActividad || "Mg. Luis Ernesto Quispe",
-          requerimientosSolicitados: audit.requerimientosSolicitados || "Verificación de portafolio docente digital.",
-        }
-      : {}; // Retorna objeto vacío para simular plantilla en blanco
+  // --- Transformar un AuditRecord a props de FormatoVisitaUTP ---
+  const getReportData = (audit: AuditRecord): FormatoVisitaUTPProps => {
+    if (templateMode === "empty") return {};
+
+    const ec = audit.evalControl;
+    const ea = audit.evalAcademica;
+    const eas = audit.evalAsistencia;
+    const eg = audit.evalGuia;
+
+    return {
+      fechaVisita: audit.fechaVisita,
+      horaInicio: audit.horaInicio,
+      horaTermino: audit.horaTermino,
+      sedeFilial: audit.sedeFilial,
+      ciclo: audit.ciclo,
+      turno: audit.turno,
+      asignatura: audit.asignatura,
+      campoFormativo: audit.campoFormativo,
+      semanaNo: audit.semanaNo,
+      horaPracticaTeoria: audit.horasPracticaTeoria,
+      lugarVisita: audit.aula,
+
+      // Sección 1: Control Docente
+      docenteNombre: audit.docenteNombre,
+      docentePresente: mapPresente(ec?.presente_id),
+      horarioProgramado: mapHorario(ec?.horario_id),
+      interaccion: mapInteraccion(ec?.interaccion_id),
+      actividad: ec?.actividad_detalle || "",
+      obs1: ec?.observaciones || "",
+
+      // Sección 2: Material Aula Virtual
+      materialCargado: mapCumple(ea?.material_cumple_id),
+      obs2: ea?.obs_material || "",
+
+      // Sección 3: Asistencia
+      asistenciaAmbiente: mapAmbienteCumple(eas?.ambiente_cumple_id),
+      asistenciaAmbienteObs: "",
+      asistenciaIntranet: mapAmbienteCumple(eas?.intranet_cumple_id),
+      asistenciaIntranetObs: "",
+      obs3: eas?.observaciones || "",
+
+      // Sección 4: Avance Silábico
+      silaboCoincide: mapCumple(ea?.silabo_coincide_actual_id),
+      temaAnteriorCoincide: mapCumple(ea?.silabo_coincide_anterior_id),
+      ingresoSilaboVirtual: mapCumple(ea?.silabo_virtual_id),
+      obs4: ea?.obs_avance_silabico || "",
+
+      // Sección 5: Guía de Práctica
+      guiaPractica: mapCumpleTriple(eg?.cumple_tema_id),
+      logroMedir: mapCumpleTriple(eg?.evidencia_logro_id),
+      rubricaEvaluacion: mapCumpleTriple(eg?.cuenta_rubrica_id),
+      obs5: eg?.observaciones || "",
+
+      // Pie del reporte
+      responsableActividad: audit.auditorNombre || "",
+      requerimientosSolicitados: audit.requerimientosSolicitados,
+    };
   };
 
+  // --- Render ---
   return (
     <div className="flex h-[calc(100vh-100px)] -m-8 relative overflow-hidden font-inter text-sivac-light bg-sivac-bg-primary">
       
@@ -493,9 +501,11 @@ export default function ReportesPage() {
                   className="w-full h-[34px] px-2 bg-sivac-bg-input-admin border border-sivac-border-card rounded text-12 text-sivac-light focus:outline-none focus:border-sivac-blue cursor-pointer"
                 >
                   <option value="all">Todas</option>
-                  <option value="central">Central Lima</option>
-                  <option value="norte">Norte Los Olivos</option>
-                  <option value="sur">Sur Chorrillos</option>
+                  {sedes.map((sede) => (
+                    <option key={sede.id} value={sede.nombre}>
+                      {sede.nombre}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -509,7 +519,9 @@ export default function ReportesPage() {
                 >
                   <option value="all">Todos</option>
                   <option value="cumplido">Cumplido</option>
+                  <option value="en_progreso">En progreso</option>
                   <option value="pendiente">Pendiente</option>
+                  <option value="observada">Observada</option>
                 </select>
               </div>
             </div>
@@ -581,15 +593,21 @@ export default function ReportesPage() {
           </div>
         )}
 
+        {/* Lista de visitas agrupadas por Aula */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {Object.keys(groupedAudits).length === 0 ? (
+          {loadingAudits ? (
+            <div className="flex flex-col items-center justify-center py-16 space-y-3">
+              <Loader2 size={28} className="text-sivac-blue animate-spin" />
+              <p className="text-12 text-sivac-muted">Cargando visitas desde la base de datos...</p>
+            </div>
+          ) : Object.keys(groupedAudits).length === 0 ? (
             <div className="text-center py-10 space-y-2">
               <BookOpen className="mx-auto text-sivac-dim" size={28} />
               <p className="text-13 text-sivac-muted font-medium">No se encontraron visitas</p>
               <p className="text-11 text-sivac-dim">Prueba ajustando el texto o los filtros de búsqueda.</p>
             </div>
           ) : (
-            Object.entries(groupedAudits).map(([aula, audits]) => {
+            Object.entries(groupedAudits).map(([aula, aulaAudits]) => {
               const isExpanded = expandedAulas[aula] !== false;
               return (
                 <div key={aula} className="space-y-2">
@@ -603,13 +621,13 @@ export default function ReportesPage() {
                       <span className="w-2.5 h-2.5 rounded-full bg-sivac-indigo shrink-0" />
                       <span className="text-14 font-bold text-sivac-heading font-poppins">{aula}</span>
                       <span className="text-11 text-sivac-muted bg-sivac-border-card/45 px-2 py-0.5 rounded-full">
-                        {audits.length} {audits.length === 1 ? "reporte" : "reportes"}
+                        {aulaAudits.length} {aulaAudits.length === 1 ? "reporte" : "reportes"}
                       </span>
                     </div>
                     <ChevronDown
                       size={16}
                       className={`text-sivac-muted transition-transform duration-200 ${
-                        isExpanded ? "" : "-rotate-95"
+                        isExpanded ? "" : "-rotate-90"
                       }`}
                     />
                   </button>
@@ -617,10 +635,11 @@ export default function ReportesPage() {
                   {/* Classroom Reports Cards List */}
                   {isExpanded && (
                     <div className="space-y-2.5 pl-3 border-l border-sivac-border-glass">
-                      {audits.map((audit) => {
+                      {aulaAudits.map((audit) => {
                         const isChecked = checkedAuditIds.includes(audit.id);
                         const isPending = audit.estado === "Pendiente";
-                        
+                        const isInProgress = audit.estado === "En progreso";
+
                         return (
                           <div
                             key={audit.id}
@@ -650,17 +669,21 @@ export default function ReportesPage() {
                                   <h4 className="text-13 font-bold text-sivac-heading font-poppins line-clamp-1">
                                     {audit.asignatura.split(" (")[0]}
                                   </h4>
-                                  <p className="text-11 text-sivac-muted">{audit.laboratorio}</p>
+                                  <p className="text-11 text-sivac-muted">{audit.laboratorio || audit.aula}</p>
                                 </div>
                               </div>
                               <span
                                 className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full inline-flex items-center gap-1 shrink-0 ${
                                   isPending
                                     ? "bg-sivac-yellow/10 text-sivac-yellow-soft border border-sivac-yellow/20"
-                                    : "bg-sivac-green/10 text-sivac-green-light border border-sivac-green/20"
+                                    : isInProgress
+                                      ? "bg-sivac-blue/10 text-sivac-blue-light border border-sivac-blue/20"
+                                      : audit.estado === "Observada"
+                                        ? "bg-sivac-red/10 text-sivac-red-light border border-sivac-red/20"
+                                        : "bg-sivac-green/10 text-sivac-green-light border border-sivac-green/20"
                                 }`}
                               >
-                                {isPending ? <Clock size={8} /> : <CheckCircle2 size={8} />}
+                                {isPending || isInProgress ? <Clock size={8} /> : <CheckCircle2 size={8} />}
                                 {audit.estado}
                               </span>
                             </div>
@@ -780,11 +803,11 @@ export default function ReportesPage() {
           </div>
         </div>
 
-        {/* Contenedor del papel (Con fondo gris claro para emular hoja física en pantalla oscura) */}
+        {/* Contenedor del papel (Con fondo gris oscuro para emular hoja física en pantalla oscura) */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col items-center gap-8 bg-gray-900/60 print:bg-white print:p-0 print:gap-0">
           {checkedAuditIds.length > 0 ? (
             checkedAuditIds.map((id) => {
-              const audit = MOCK_AUDITS.find((a) => a.id === id);
+              const audit = audits.find((a) => a.id === id);
               if (!audit) return null;
               const data = getReportData(audit);
               return (
