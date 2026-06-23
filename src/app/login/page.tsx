@@ -1,18 +1,46 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { LayoutGrid, CheckCircle2, Cloud, RefreshCw, Sun } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    router.push("/admin/dashboard");
+    setLoading(true);
+    setErrorMsg("");
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          setErrorMsg("Credenciales de acceso incorrectas.");
+        } else {
+          setErrorMsg(error.message);
+        }
+      } else {
+        router.push("/admin/visitas");
+      }
+    } catch (err: any) {
+      setErrorMsg("Ocurrió un error inesperado al intentar iniciar sesión.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -137,13 +165,22 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
+            {errorMsg && (
+              <div className="p-3.5 text-13 text-red-200 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-2">
+                <span>⚠️</span>
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
             <div>
               <label className="block text-12 font-medium text-sivac-muted tracking-wide-06 uppercase mb-2">
                 USUARIO INSTITUCIONAL
               </label>
               <input
-                type="text"
+                type="email"
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="ej. supervisor@institucion.edu"
                 className="input-login w-full h-[48px] px-4 text-14"
               />
@@ -156,6 +193,8 @@ export default function LoginPage() {
               <input
                 type="password"
                 required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 className="input-login w-full h-[48px] px-4 text-14 tracking-widest"
               />
@@ -179,9 +218,14 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="w-full h-[48px] rounded bg-sivac-blue hover:bg-blue-700 text-sivac-surface text-12 font-bold tracking-wide-06 transition-colors shadow-lg shadow-sivac-blue/20 uppercase"
+              disabled={loading}
+              className={`w-full h-[48px] rounded text-sivac-surface text-12 font-bold tracking-wide-06 transition-colors shadow-lg uppercase flex items-center justify-center gap-2 ${
+                loading
+                  ? "bg-sivac-blue/50 cursor-not-allowed shadow-none"
+                  : "bg-sivac-blue hover:bg-blue-700 shadow-sivac-blue/20"
+              }`}
             >
-              INICIAR SESIÓN
+              {loading ? "INICIANDO SESIÓN..." : "INICIAR SESIÓN"}
             </button>
           </form>
         </div>

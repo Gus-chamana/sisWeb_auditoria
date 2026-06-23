@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Check, Building2, Calendar, BookOpen, Clock, Trash2, Plus } from "lucide-react";
+import { AccessGuard } from "@/components/layout/AccessGuard";
 
 export default function ConfigurableSettingsPage() {
   const [sedes, setSedes] = useState(["Sede Central Lima", "Sede Norte Los Olivos"]);
@@ -17,7 +18,8 @@ export default function ConfigurableSettingsPage() {
   };
 
   return (
-    <div className="space-y-8 font-inter">
+    <AccessGuard allowedRoles={["Admin"]}>
+      <div className="space-y-8 font-inter">
       {/* Header Info */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -181,5 +183,6 @@ export default function ConfigurableSettingsPage() {
         </div>
       </div>
     </div>
+    </AccessGuard>
   );
 }

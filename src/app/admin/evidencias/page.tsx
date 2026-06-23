@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { UploadCloud, Camera, Image as ImageIcon, Calendar, MapPin, Trash2 } from "lucide-react";
+import { UploadCloud, Camera, Image as ImageIcon, Calendar, MapPin, Trash2, ShieldAlert } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
 
 interface EvidenceCard {
   id: string;
@@ -13,6 +14,18 @@ interface EvidenceCard {
 }
 
 export default function EvidenciasPage() {
+  const { user, loading } = useAuth();
+
+  if (loading || !user) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-10 bg-white/5 rounded-lg w-1/4" />
+        <div className="h-40 bg-white/5 rounded-lg w-full" />
+      </div>
+    );
+  }
+
+  const ROL_ACTIVO = user.rol;
   const cards: EvidenceCard[] = [
     {
       id: "ev-01",
@@ -32,6 +45,9 @@ export default function EvidenciasPage() {
     },
   ];
 
+  // Regla de negocio: Admin solo consulta
+  const esSoloConsulta = ROL_ACTIVO === "Admin";
+
   return (
     <div className="space-y-8 font-inter">
       {/* Header Info */}
@@ -45,30 +61,45 @@ export default function EvidenciasPage() {
           </p>
         </div>
 
-        <button
-          type="button"
-          className="h-[40px] px-5 bg-sivac-blue hover:bg-blue-700 rounded-lg text-14 text-sivac-surface transition-colors flex items-center gap-2 font-bold uppercase tracking-wide-06"
-        >
-          <UploadCloud size={16} strokeWidth={2.5} />
-          <span>Subir Fotografías</span>
-        </button>
+        {/* Solo mostrar botón de subida si no es modo de consulta exclusivo (Admin) */}
+        {!esSoloConsulta && (
+          <button
+            type="button"
+            className="h-[40px] px-5 bg-sivac-blue hover:bg-blue-700 rounded-lg text-14 text-sivac-surface transition-colors flex items-center gap-2 font-bold uppercase tracking-wide-06"
+          >
+            <UploadCloud size={16} strokeWidth={2.5} />
+            <span>Subir Fotografías</span>
+          </button>
+        )}
       </div>
 
-      {/* Drag & Drop Zone */}
-      <div className="bg-sivac-bg-input-admin border-2 border-dashed border-sivac-border-card hover:border-sivac-blue/50 rounded-xl p-8 sm:p-12 flex flex-col items-center justify-center text-center cursor-pointer transition-colors group">
-        <div className="w-14 h-14 rounded-full bg-sivac-bg-surface border border-sivac-border-card flex items-center justify-center text-sivac-muted group-hover:text-sivac-blue transition-colors shadow-inner mb-4">
-          <Camera size={26} strokeWidth={1.5} />
+      {/* Banner de alerta de solo lectura para Administrador */}
+      {esSoloConsulta && (
+        <div className="p-4 rounded-lg bg-sivac-blue/10 border border-sivac-blue/30 text-sivac-indigo-light flex gap-3 items-center">
+          <ShieldAlert size={18} className="text-sivac-blue-light" />
+          <span className="text-13">
+            <strong>Modo de Consulta Activo:</strong> Como Administrador, tu acceso a esta pantalla es únicamente de lectura. No está permitido cargar nuevas evidencias ni eliminar registros de visitas.
+          </span>
         </div>
-        <h3 className="text-16 font-semibold text-sivac-light mb-1">
-          Arrastra y suelta tus archivos aquí
-        </h3>
-        <p className="text-14 font-normal text-sivac-muted mb-2">
-          O haz clic para examinar en tu dispositivo local
-        </p>
-        <span className="text-12 font-medium text-sivac-dim bg-sivac-bg-surface px-3 py-1 rounded-md border border-sivac-border-card">
-          Soporta JPG, PNG (Max. 5MB)
-        </span>
-      </div>
+      )}
+
+      {/* Drag & Drop Zone: Ocultar para Administrador */}
+      {!esSoloConsulta && (
+        <div className="bg-sivac-bg-input-admin border-2 border-dashed border-sivac-border-card hover:border-sivac-blue/50 rounded-xl p-8 sm:p-12 flex flex-col items-center justify-center text-center cursor-pointer transition-colors group">
+          <div className="w-14 h-14 rounded-full bg-sivac-bg-surface border border-sivac-border-card flex items-center justify-center text-sivac-muted group-hover:text-sivac-blue transition-colors shadow-inner mb-4">
+            <Camera size={26} strokeWidth={1.5} />
+          </div>
+          <h3 className="text-16 font-semibold text-sivac-light mb-1">
+            Arrastra y suelta tus archivos aquí
+          </h3>
+          <p className="text-14 font-normal text-sivac-muted mb-2">
+            O haz clic para examinar en tu dispositivo local
+          </p>
+          <span className="text-12 font-medium text-sivac-dim bg-sivac-bg-surface px-3 py-1 rounded-md border border-sivac-border-card">
+            Soporta JPG, PNG (Max. 5MB)
+          </span>
+        </div>
+      )}
 
       {/* Gallery Section */}
       <div className="space-y-4">
@@ -116,13 +147,17 @@ export default function EvidenciasPage() {
                   >
                     Ver Evidencia
                   </button>
-                  <button
-                    type="button"
-                    className="h-[32px] px-3 rounded border border-sivac-red/30 hover:border-sivac-red hover:bg-sivac-red/10 text-sivac-red-light transition-colors"
-                    title="Eliminar"
-                  >
-                    <Trash2 size={16} strokeWidth={2} />
-                  </button>
+                  
+                  {/* Ocultar botón eliminar para Admin */}
+                  {!esSoloConsulta && (
+                    <button
+                      type="button"
+                      className="h-[32px] px-3 rounded border border-sivac-red/30 hover:border-sivac-red hover:bg-sivac-red/10 text-sivac-red-light transition-colors"
+                      title="Eliminar"
+                    >
+                      <Trash2 size={16} strokeWidth={2} />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

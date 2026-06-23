@@ -2,10 +2,12 @@
 
 import React from "react";
 import { TrendingUp, Award, AlertCircle } from "lucide-react";
+import { AccessGuard } from "@/components/layout/AccessGuard";
 
 export default function AnalyticsPage() {
   return (
-    <div className="space-y-8 font-inter">
+    <AccessGuard allowedRoles={["Admin", "Auditor"]}>
+      <div className="space-y-8 font-inter">
       {/* Header Info */}
       <div>
         <h1 className="text-28 font-bold font-poppins text-sivac-light">
@@ -204,5 +206,6 @@ export default function AnalyticsPage() {
         </div>
       </div>
     </div>
+    </AccessGuard>
   );
 }

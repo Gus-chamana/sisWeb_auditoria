@@ -3,6 +3,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/Badge";
 import { UserPlus, Users, ShieldCheck, BookOpen, Edit2, Trash2 } from "lucide-react";
+import { AccessGuard } from "@/components/layout/AccessGuard";
 
 interface UserRow {
   id: string;
@@ -43,7 +44,8 @@ export default function UsuariosPage() {
   ];
 
   return (
-    <div className="space-y-8 font-inter">
+    <AccessGuard allowedRoles={["Admin"]}>
+      <div className="space-y-8 font-inter">
       {/* Header Info */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -198,5 +200,6 @@ export default function UsuariosPage() {
         </div>
       </div>
     </div>
+    </AccessGuard>
   );
 }

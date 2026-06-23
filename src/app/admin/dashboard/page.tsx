@@ -10,10 +10,12 @@ import {
   CheckCircle2,
   AlertTriangle,
 } from "lucide-react";
+import { AccessGuard } from "@/components/layout/AccessGuard";
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-8 font-inter">
+    <AccessGuard allowedRoles={["Admin", "Auditor"]}>
+      <div className="space-y-8 font-inter">
       {/* Header Row */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -448,5 +450,6 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+    </AccessGuard>
   );
 }

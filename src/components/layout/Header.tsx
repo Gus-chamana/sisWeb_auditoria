@@ -3,8 +3,23 @@
 import React from "react";
 import Link from "next/link";
 import { Search, Bell, ChevronDown } from "lucide-react";
+import { getRolLabel, getRolColor } from "@/lib/auth";
+import { useAuth } from "@/lib/AuthContext";
 
 export function Header() {
+  const { user, loading } = useAuth();
+
+  if (loading || !user) {
+    return (
+      <header className="h-[72px] bg-sivac-bg-primary border-b border-sivac-border flex items-center justify-between px-8 sticky top-0 z-20 font-inter animate-pulse">
+        <div className="w-full max-w-md h-10 bg-white/5 rounded-lg" />
+        <div className="w-32 h-10 bg-white/5 rounded-lg" />
+      </header>
+    );
+  }
+
+  const currentUser = user;
+
   return (
     <header className="h-[72px] bg-sivac-bg-primary border-b border-sivac-border flex items-center justify-between px-8 sticky top-0 z-20 font-inter">
       {/* Search Input */}
@@ -31,15 +46,22 @@ export function Header() {
           <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-sivac-blue rounded-full border border-sivac-bg-toggle" />
         </Link>
 
-        {/* Profile Button */}
+        {/* Profile Button — Datos dinámicos según el rol */}
         <button
           type="button"
           className="h-10 px-4 flex items-center gap-2.5 bg-sivac-bg-toggle border border-sivac-border rounded-xl text-sivac-body hover:text-sivac-heading transition-colors"
         >
           <div className="w-6 h-6 rounded-lg bg-sivac-blue/10 flex items-center justify-center text-sivac-indigo text-11 font-semibold">
-            AS
+            {currentUser.iniciales}
           </div>
-          <span className="text-14 font-medium">Perfil</span>
+          <span className="text-14 font-medium">{currentUser.nombre.split(" ")[0]}</span>
+          <span
+            className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border leading-none hidden sm:inline-flex ${getRolColor(
+              currentUser.rol
+            )}`}
+          >
+            {getRolLabel(currentUser.rol)}
+          </span>
           <ChevronDown size={14} strokeWidth={2} className="text-sivac-muted" />
         </button>
       </div>
