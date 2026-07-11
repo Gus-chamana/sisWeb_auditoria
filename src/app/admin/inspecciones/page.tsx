@@ -12,6 +12,27 @@ import { Paso7Firmas } from "@/components/inspecciones/Paso7Firmas";
 import { AccessGuard } from "@/components/layout/AccessGuard";
 import { useAuth } from "@/lib/AuthContext";
 
+const getLocalTimeString = (): string => {
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  return `${hours}:${minutes}:${seconds}`;
+};
+
+const parseAsistenciaObs = (rawObs: string) => {
+  if (!rawObs) return { alumnosAmbiente: "" as number | "", alumnosIntranet: "" as number | "", observaciones: "" };
+  const match = rawObs.match(/^\[alumnos_ambiente:(\d*),alumnos_intranet:(\d*)\](.*)$/s);
+  if (match) {
+    return {
+      alumnosAmbiente: match[1] === "" ? "" : parseInt(match[1], 10),
+      alumnosIntranet: match[2] === "" ? "" : parseInt(match[2], 10),
+      observaciones: match[3].trim()
+    };
+  }
+  return { alumnosAmbiente: "" as number | "", alumnosIntranet: "" as number | "", observaciones: rawObs };
+};
+
 export default function InspeccionesPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -27,14 +48,14 @@ export default function InspeccionesPage() {
   // Estado global para todo el formulario de auditoría de 7 pasos
   const [formData, setFormData] = useState({
     // Paso 1: Datos Generales
-    sedeFilial: "Sede Central - Lima",
-    ciclo: "2026-I",
-    turno: "Noche",
-    aula: "Aula B-402",
-    asignatura: "Arquitectura de Software (12402)",
-    semanaNo: "12",
-    modalidad: "Presencial",
-    docenteNombre: "Dr. Ing. Hugo Cabrera Rojas",
+    sedeFilial: "",
+    ciclo: "",
+    turno: "",
+    aula: "",
+    asignatura: "",
+    semanaNo: "",
+    modalidad: "",
+    docenteNombre: "",
 
     // Paso 2: Control Docente
     docentePresente: "" as "Presente" | "Ausente" | "",
@@ -68,15 +89,82 @@ export default function InspeccionesPage() {
     firmaDocenteUrl: ""
   });
 
+  const [validationError, setValidationError] = useState("");
+
   const updateFormData = (fields: Partial<typeof formData>) => {
     setFormData((prev) => ({ ...prev, ...fields }));
+    setValidationError("");
   };
 
   const [visitaId, setVisitaId] = useState<number | null>(null);
+  const [teachers, setTeachers] = useState<{ id: number; nombres: string; apellidos: string }[]>([]);
+  const [sedes, setSedes] = useState<{ id: number; nombre: string }[]>([]);
+  const [ciclos, setCiclos] = useState<{ id: number; nombre: string }[]>([]);
+  const [turnos, setTurnos] = useState<{ id: number; nombre: string }[]>([]);
+  const [aulas, setAulas] = useState<{ id: number; nombre: string; sede_id: number }[]>([]);
+  const [asignaturas, setAsignaturas] = useState<{ id: number; nombre: string }[]>([]);
   const { user } = useAuth();
 
-  // Leer los parámetros de la URL para pre-llenar los datos de la inspección o recuperar la visita
+  // Filtrar catálogos activos o ya seleccionados previamente en edición
+  const getFilteredSedes = () => {
+    return sedes.filter(s => !s.nombre.endsWith(" (Inactivo)") || s.nombre === formData.sedeFilial);
+  };
+
+  const getFilteredCiclos = () => {
+    return ciclos.filter(c => !c.nombre.endsWith(" (Inactivo)") || c.nombre === formData.ciclo);
+  };
+
+  const getFilteredTurnos = () => {
+    return turnos.filter(t => !t.nombre.endsWith(" (Inactivo)") || t.nombre === formData.turno);
+  };
+
+  const getFilteredAsignaturas = () => {
+    return asignaturas.filter(a => !a.nombre.endsWith(" (Inactivo)") || a.nombre === formData.asignatura);
+  };
+
+  const getFilteredAulas = () => {
+    const selectedSedeObj = sedes.find(s => s.nombre === formData.sedeFilial);
+    const unfiltered = selectedSedeObj 
+      ? aulas.filter(a => a.sede_id === selectedSedeObj.id)
+      : [];
+    return unfiltered.filter(a => !a.nombre.endsWith(" (Inactivo)") || a.nombre === formData.aula);
+  };
+
+  const getFilteredTeachers = () => {
+    return teachers.filter(t => {
+      const fullName = `${t.nombres} ${t.apellidos}`.trim();
+      return !t.apellidos.endsWith(" (Inactivo)") || fullName === formData.docenteNombre;
+    });
+  };
+
+  // Cargar catálogos y docentes registrados de Supabase al iniciar
   React.useEffect(() => {
+    async function loadData() {
+      try {
+        const { createClient } = await import("@/utils/supabase/client");
+        const supabase = createClient();
+        
+        const [resTeachers, resSedes, resCiclos, resTurnos, resAulas, resAsignaturas] = await Promise.all([
+          supabase.from("usuarios").select("id, nombres, apellidos").eq("rol_id", 3).order("nombres"),
+          supabase.from("sedes").select("id, nombre").order("nombre"),
+          supabase.from("ciclos").select("id, nombre").order("nombre"),
+          supabase.from("turnos").select("id, nombre").order("nombre"),
+          supabase.from("aulas").select("id, nombre, sede_id").order("nombre"),
+          supabase.from("asignaturas").select("id, nombre").order("nombre"),
+        ]);
+
+        if (resTeachers.data) setTeachers(resTeachers.data);
+        if (resSedes.data) setSedes(resSedes.data);
+        if (resCiclos.data) setCiclos(resCiclos.data);
+        if (resTurnos.data) setTurnos(resTurnos.data);
+        if (resAulas.data) setAulas(resAulas.data);
+        if (resAsignaturas.data) setAsignaturas(resAsignaturas.data);
+      } catch (err) {
+        console.error("Error al cargar catálogos:", err);
+      }
+    }
+    loadData();
+
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const idParam = params.get("visitaId");
@@ -160,6 +248,15 @@ export default function InspeccionesPage() {
         setHasEvidences(true);
       }
 
+      const parsedAsistencia = parseAsistenciaObs(evalAsistencia?.observaciones || "");
+      const isEncodedAsistencia = evalAsistencia?.observaciones?.startsWith("[alumnos_ambiente:") ?? false;
+      const finalAlumnosAmbiente = evalAsistencia
+        ? (parsedAsistencia.alumnosAmbiente !== "" ? parsedAsistencia.alumnosAmbiente : (isEncodedAsistencia ? "" : 25))
+        : "";
+      const finalAlumnosIntranet = evalAsistencia
+        ? (parsedAsistencia.alumnosIntranet !== "" ? parsedAsistencia.alumnosIntranet : (isEncodedAsistencia ? "" : 25))
+        : "";
+
       setFormData({
         sedeFilial: (visita.sedes as any)?.nombre || "Sede Central - Lima",
         ciclo: visita.ciclo || "2026-I",
@@ -169,23 +266,23 @@ export default function InspeccionesPage() {
         semanaNo: (visita.semana_nro || 12).toString(),
         modalidad: "Presencial",
         docenteNombre: `${(visita.docente as any)?.nombres || ""} ${(visita.docente as any)?.apellidos || ""}`.trim() || "Docente",
-        docentePresente: evalControl ? (evalControl.presente_id === 4 ? "Presente" : "Ausente") : "",
-        horarioProgramado: evalControl ? (evalControl.horario_id === 6 ? "Puntual" : "Impuntual") : "",
-        interaccion: evalControl ? (evalControl.interaccion_id === 8 ? "Interactúa" : "No Interactúa") : "",
+        docentePresente: evalControl ? (evalControl.presente_id === 4 ? "Presente" : evalControl.presente_id === 5 ? "Ausente" : "") : "",
+        horarioProgramado: evalControl ? (evalControl.horario_id === 6 ? "Puntual" : evalControl.horario_id === 7 ? "Impuntual" : "") : "",
+        interaccion: evalControl ? (evalControl.interaccion_id === 1 ? "Interactúa" : evalControl.interaccion_id === 2 ? "No Interactúa" : "") : "",
         observacionesAusencia: evalControl?.observaciones || "",
         actividadDocente: evalControl?.actividad_detalle || "",
-        materialCargado: evalAcad ? (evalAcad.material_cumple_id === 1 ? "CUMPLE" : "NO CUMPLE") : "",
+        materialCargado: evalAcad ? (evalAcad.material_cumple_id === 1 ? "CUMPLE" : evalAcad.material_cumple_id === 2 ? "NO CUMPLE" : "") : "",
         observacionesMaterial: evalAcad?.obs_material || "",
-        alumnosAmbiente: evalAsistencia ? 25 : "",
-        alumnosIntranet: evalAsistencia ? 25 : "",
-        observacionesAsistencia: evalAsistencia?.observaciones || "",
-        silaboCoincide: evalAcad ? (evalAcad.silabo_coincide_actual_id === 1 ? "CUMPLE" : "NO CUMPLE") : "",
-        temaAnteriorCoincide: evalAcad ? (evalAcad.silabo_coincide_anterior_id === 1 ? "CUMPLE" : "NO CUMPLE") : "",
-        ingresoSilaboVirtual: evalAcad ? (evalAcad.silabo_virtual_id === 1 ? "CUMPLE" : "NO CUMPLE") : "",
+        alumnosAmbiente: finalAlumnosAmbiente,
+        alumnosIntranet: finalAlumnosIntranet,
+        observacionesAsistencia: parsedAsistencia.observaciones,
+        silaboCoincide: evalAcad ? (evalAcad.silabo_coincide_actual_id === 1 ? "CUMPLE" : evalAcad.silabo_coincide_actual_id === 2 ? "NO CUMPLE" : "") : "",
+        temaAnteriorCoincide: evalAcad ? (evalAcad.silabo_coincide_anterior_id === 1 ? "CUMPLE" : evalAcad.silabo_coincide_anterior_id === 2 ? "NO CUMPLE" : "") : "",
+        ingresoSilaboVirtual: evalAcad ? (evalAcad.silabo_virtual_id === 1 ? "CUMPLE" : evalAcad.silabo_virtual_id === 2 ? "NO CUMPLE" : "") : "",
         observacionesSilabo: evalAcad?.obs_avance_silabico || "",
-        guiaPractica: evalGuia ? (evalGuia.cumple_tema_id === 1 ? "CUMPLE" : evalGuia.cumple_tema_id === 2 ? "NO CUMPLE" : "NO APLICA") : "",
-        logroMedir: evalGuia ? (evalGuia.evidencia_logro_id === 1 ? "CUMPLE" : evalGuia.evidencia_logro_id === 2 ? "NO CUMPLE" : "NO APLICA") : "",
-        rubricaEvaluacion: evalGuia ? (evalGuia.cuenta_rubrica_id === 1 ? "CUMPLE" : evalGuia.cuenta_rubrica_id === 2 ? "NO CUMPLE" : "NO APLICA") : "",
+        guiaPractica: evalGuia ? (evalGuia.cumple_tema_id === 1 ? "CUMPLE" : evalGuia.cumple_tema_id === 2 ? "NO CUMPLE" : evalGuia.cumple_tema_id === 3 ? "NO APLICA" : "") : "",
+        logroMedir: evalGuia ? (evalGuia.evidencia_logro_id === 1 ? "CUMPLE" : evalGuia.evidencia_logro_id === 2 ? "NO CUMPLE" : evalGuia.evidencia_logro_id === 3 ? "NO APLICA" : "") : "",
+        rubricaEvaluacion: evalGuia ? (evalGuia.cuenta_rubrica_id === 1 ? "CUMPLE" : evalGuia.cuenta_rubrica_id === 2 ? "NO CUMPLE" : evalGuia.cuenta_rubrica_id === 3 ? "NO APLICA" : "") : "",
         observacionesGuia: evalGuia?.observaciones || "",
         firmaDocenteUrl: visita.firma_docente_b64 || "",
       });
@@ -256,14 +353,10 @@ export default function InspeccionesPage() {
           asigId = newAsig?.id;
         }
 
-        const { data: docUser } = await supabase
-          .from("usuarios")
-          .select("id")
-          .ilike("nombres", `%${formData.docenteNombre.split(" ")[0]}%`)
-          .limit(1)
-          .maybeSingle();
-        
-        const docId = docUser?.id || 3;
+        const selectedTeacher = teachers.find(
+          (t) => `${t.nombres} ${t.apellidos}`.trim() === formData.docenteNombre
+        );
+        const docId = selectedTeacher?.id || 3;
 
         const payload = {
           auditor_id: user ? parseInt(user.id, 10) : 2,
@@ -287,7 +380,10 @@ export default function InspeccionesPage() {
         } else {
           const { data: newVisita } = await supabase
             .from("visitas")
-            .insert(payload)
+            .insert({
+              ...payload,
+              hora_inicio_real: getLocalTimeString(),
+            })
             .select("id")
             .single();
           if (newVisita) {
@@ -312,7 +408,7 @@ export default function InspeccionesPage() {
       if (step === 2) {
         const presenteId = formData.docentePresente === "Presente" ? 4 : 5;
         const horarioId = formData.horarioProgramado === "Puntual" ? 6 : 7;
-        const interaccionId = formData.interaccion === "Interactúa" ? 8 : 9;
+        const interaccionId = formData.interaccion === "Interactúa" ? 1 : 2;
 
         await supabase.from("eval_control_docente").upsert({
           visita_id: currentVisitaId,
@@ -326,21 +422,32 @@ export default function InspeccionesPage() {
 
       if (step === 3) {
         const cumpleId = formData.materialCargado === "CUMPLE" ? 1 : 2;
+        const { data: existing } = await supabase
+          .from("eval_academica_detalle")
+          .select("*")
+          .eq("visita_id", currentVisitaId)
+          .maybeSingle();
+
         await supabase.from("eval_academica_detalle").upsert({
           visita_id: currentVisitaId,
           material_cumple_id: cumpleId,
           obs_material: formData.observacionesMaterial,
+          silabo_coincide_actual_id: existing?.silabo_coincide_actual_id || null,
+          silabo_coincide_anterior_id: existing?.silabo_coincide_anterior_id || null,
+          silabo_virtual_id: existing?.silabo_virtual_id || null,
+          obs_avance_silabico: existing?.obs_avance_silabico || null,
         });
       }
 
       if (step === 4) {
         const ambienteId = formData.alumnosAmbiente !== "" ? 1 : 2;
         const intranetId = formData.alumnosIntranet !== "" ? 1 : 2;
+        const encodedObs = `[alumnos_ambiente:${formData.alumnosAmbiente},alumnos_intranet:${formData.alumnosIntranet}]${formData.observacionesAsistencia}`.trim();
         await supabase.from("eval_asistencia").upsert({
           visita_id: currentVisitaId,
           ambiente_cumple_id: ambienteId,
           intranet_cumple_id: intranetId,
-          observaciones: formData.observacionesAsistencia,
+          observaciones: encodedObs,
         });
       }
 
@@ -386,12 +493,20 @@ export default function InspeccionesPage() {
       const { createClient } = await import("@/utils/supabase/client");
       const supabase = createClient();
 
+      // Recuperar la firma del auditor/usuario actual desde localStorage
+      let auditorFirma = "";
+      if (typeof window !== "undefined" && user?.id) {
+        auditorFirma = localStorage.getItem(`sivac_signature_user_${user.id}`) || "";
+      }
+
       await supabase
         .from("visitas")
         .update({
           estado_id: completed ? 3 : 2, // 3: Completada, 2: En Progreso
           ultimo_paso_completado: 7,
           firma_docente_b64: formData.firmaDocenteUrl,
+          firma_auditor_b64: auditorFirma || null,
+          hora_termino_real: getLocalTimeString(),
         })
         .eq("id", visitaId);
     } catch (err) {
@@ -399,7 +514,77 @@ export default function InspeccionesPage() {
     }
   };
 
+  const isStepValid = (): boolean => {
+    switch (currentStep) {
+      case 1:
+        if (
+          !formData.sedeFilial ||
+          !formData.ciclo ||
+          !formData.turno ||
+          !formData.aula.trim() ||
+          !formData.asignatura.trim() ||
+          !formData.semanaNo ||
+          !formData.modalidad ||
+          !formData.docenteNombre
+        ) {
+          setValidationError("Por favor, complete todos los campos");
+          return false;
+        }
+        break;
+      case 2:
+        if (!formData.docentePresente) {
+          setValidationError("Por favor, complete todos los campos");
+          return false;
+        }
+        if (formData.docentePresente === "Ausente") {
+          if (!formData.observacionesAusencia.trim()) {
+            setValidationError("Por favor, complete todos los campos");
+            return false;
+          }
+        } else {
+          if (!formData.horarioProgramado || !formData.interaccion || !formData.actividadDocente.trim()) {
+            setValidationError("Por favor, complete todos los campos");
+            return false;
+          }
+        }
+        break;
+      case 3:
+        if (!formData.materialCargado) {
+          setValidationError("Por favor, complete todos los campos");
+          return false;
+        }
+        break;
+      case 4:
+        if (formData.alumnosAmbiente === "" || formData.alumnosIntranet === "") {
+          setValidationError("Por favor, complete todos los campos");
+          return false;
+        }
+        break;
+      case 5:
+        if (!formData.silaboCoincide || !formData.temaAnteriorCoincide || !formData.ingresoSilaboVirtual) {
+          setValidationError("Por favor, complete todos los campos");
+          return false;
+        }
+        break;
+      case 6:
+        if (!formData.guiaPractica || !formData.logroMedir || !formData.rubricaEvaluacion) {
+          setValidationError("Por favor, complete todos los campos");
+          return false;
+        }
+        break;
+      case 7:
+        if (!formData.firmaDocenteUrl) {
+          setValidationError("Por favor, complete todos los campos");
+          return false;
+        }
+        break;
+    }
+    setValidationError("");
+    return true;
+  };
+
   const handleNext = async () => {
+    if (!isStepValid()) return;
     await saveStepProgress(currentStep);
     if (currentStep < 7) {
       setCurrentStep((prev) => prev + 1);
@@ -415,6 +600,7 @@ export default function InspeccionesPage() {
   };
 
   const handlePrev = () => {
+    setValidationError("");
     if (currentStep > 1) {
       setCurrentStep((prev) => prev - 1);
     }
@@ -480,12 +666,15 @@ export default function InspeccionesPage() {
                 <label className="block text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">Sede Académica</label>
                 <select
                   value={formData.sedeFilial}
-                  onChange={(e) => updateFormData({ sedeFilial: e.target.value })}
-                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue"
+                  onChange={(e) => updateFormData({ sedeFilial: e.target.value, aula: "" })}
+                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue cursor-pointer"
                 >
-                  <option value="Sede Central - Lima">Sede Central - Lima</option>
-                  <option value="Sede Norte - Los Olivos">Sede Norte - Los Olivos</option>
-                  <option value="Sede Sur - Chorrillos">Sede Sur - Chorrillos</option>
+                  <option value="">Seleccione una sede...</option>
+                  {getFilteredSedes().map((s) => (
+                    <option key={s.id} value={s.nombre}>
+                      {s.nombre.replace(" (Inactivo)", "")}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -494,11 +683,14 @@ export default function InspeccionesPage() {
                 <select
                   value={formData.ciclo}
                   onChange={(e) => updateFormData({ ciclo: e.target.value })}
-                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue"
+                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue cursor-pointer"
                 >
-                  <option value="2026-I">Ciclo 2026-I</option>
-                  <option value="2025-II">Ciclo 2025-II</option>
-                  <option value="2025-I">Ciclo 2025-I</option>
+                  <option value="">Seleccione un ciclo...</option>
+                  {getFilteredCiclos().map((c) => (
+                    <option key={c.id} value={c.nombre}>
+                      {c.nombre.replace(" (Inactivo)", "")}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -507,34 +699,49 @@ export default function InspeccionesPage() {
                 <select
                   value={formData.turno}
                   onChange={(e) => updateFormData({ turno: e.target.value })}
-                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue"
+                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue cursor-pointer"
                 >
-                  <option value="Mañana">Mañana</option>
-                  <option value="Tarde">Tarde</option>
-                  <option value="Noche">Noche</option>
+                  <option value="">Seleccione un turno...</option>
+                  {getFilteredTurnos().map((t) => (
+                    <option key={t.id} value={t.nombre}>
+                      {t.nombre.replace(" (Inactivo)", "")}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div className="space-y-2">
                 <label className="block text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">Aula / Laboratorio</label>
-                <input
-                  type="text"
+                <select
                   value={formData.aula}
                   onChange={(e) => updateFormData({ aula: e.target.value })}
-                  placeholder="Ej. Aula B-402"
-                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue placeholder:text-sivac-dim"
-                />
+                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue cursor-pointer"
+                >
+                  <option value="">
+                    {formData.sedeFilial ? "Seleccione un aula..." : "Seleccione una sede primero..."}
+                  </option>
+                  {getFilteredAulas().map((a) => (
+                    <option key={a.id} value={a.nombre}>
+                      {a.nombre.replace(" (Inactivo)", "")}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-2 md:col-span-2">
                 <label className="block text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">Asignatura del Curso</label>
-                <input
-                  type="text"
+                <select
                   value={formData.asignatura}
                   onChange={(e) => updateFormData({ asignatura: e.target.value })}
-                  placeholder="Ej. Arquitectura de Software"
-                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue placeholder:text-sivac-dim"
-                />
+                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue cursor-pointer"
+                >
+                  <option value="">Seleccione una asignatura...</option>
+                  {getFilteredAsignaturas().map((asig) => (
+                    <option key={asig.id} value={asig.nombre}>
+                      {asig.nombre.replace(" (Inactivo)", "")}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-2">
@@ -544,6 +751,7 @@ export default function InspeccionesPage() {
                   onChange={(e) => updateFormData({ semanaNo: e.target.value })}
                   className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue"
                 >
+                  <option value="">Seleccione una semana...</option>
                   {Array.from({ length: 16 }, (_, i) => i + 1).map((s) => (
                     <option key={s} value={s}>{`Semana ${s}`}</option>
                   ))}
@@ -557,6 +765,7 @@ export default function InspeccionesPage() {
                   onChange={(e) => updateFormData({ modalidad: e.target.value })}
                   className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue"
                 >
+                  <option value="">Seleccione una modalidad...</option>
                   <option value="Presencial">Presencial (Laboratorio / Aula)</option>
                   <option value="Virtual">Virtual (Zoom / Teams)</option>
                   <option value="Híbrido">Híbrido (Dual)</option>
@@ -565,13 +774,22 @@ export default function InspeccionesPage() {
 
               <div className="space-y-2 md:col-span-2">
                 <label className="block text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">Nombre del Docente</label>
-                <input
-                  type="text"
+                <select
                   value={formData.docenteNombre}
                   onChange={(e) => updateFormData({ docenteNombre: e.target.value })}
-                  placeholder="Ej. Dr. Ing. Hugo Cabrera Rojas"
-                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue placeholder:text-sivac-dim"
-                />
+                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue cursor-pointer"
+                >
+                  <option value="">Seleccione un docente...</option>
+                  {getFilteredTeachers().map((t) => {
+                    const fullName = `${t.nombres} ${t.apellidos}`.trim();
+                    const cleanFullName = fullName.replace(" (Inactivo)", "");
+                    return (
+                      <option key={t.id} value={fullName}>
+                        {cleanFullName}
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
             </div>
           </div>
@@ -656,6 +874,34 @@ export default function InspeccionesPage() {
       <div className="space-y-6">
         {renderStepContent()}
       </div>
+
+      {/* Modal de Advertencia de Validación */}
+      {validationError && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn text-sivac-light">
+          <div className="bg-sivac-bg-surface/90 border border-white/10 rounded-2xl p-6 max-w-sm w-full text-center space-y-6 shadow-2xl relative backdrop-blur-xl">
+            <div className="w-14 h-14 rounded-full bg-red-500/15 text-red-400 mx-auto flex items-center justify-center border border-red-500/30 shrink-0 animate-pulse">
+              <AlertTriangle size={28} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-18 font-bold font-poppins text-sivac-heading leading-tight">
+                Campos Incompletos
+              </h3>
+              <p className="text-13 leading-relaxed text-sivac-body">
+                {validationError}
+              </p>
+            </div>
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setValidationError("")}
+                className="w-full h-[40px] bg-sivac-blue hover:bg-blue-700 text-sivac-surface rounded-lg text-13 font-bold transition-all cursor-pointer uppercase tracking-wider shadow-lg shadow-sivac-blue/15"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer Wizard Actions */}
       <div className="flex items-center justify-between border-t border-sivac-border-card pt-6 mt-8">

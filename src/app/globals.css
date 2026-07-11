@@ -103,3 +103,70 @@
     font-family: var(--font-inter), sans-serif;
   }
 }
+
+/* Estilos de Impresión Oficiales */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm !important;
+  }
+
+  .no-print,
+  aside,
+  header,
+  nav,
+  button,
+  .no-print * {
+    display: none !important;
+    height: 0 !important;
+    width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+
+  /* Reset parent containers to block layouts for A4 alignment */
+  html,
+  body,
+  #__next,
+  .min-h-screen,
+  .pl-280,
+  main,
+  .flex,
+  .flex-col,
+  .flex-1 {
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    position: static !important;
+    background: white !important;
+    color: black !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Force print sheet dimensions and center alignment */
+  .print-sheet {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    width: 186mm !important; /* 210mm - 24mm margins */
+    height: 277mm !important; /* 297mm - 20mm margins */
+    margin: 0 auto !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    background: white !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+  }
+}
+
+

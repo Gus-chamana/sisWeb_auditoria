@@ -91,14 +91,38 @@ export function Sidebar() {
   const searchParams = useSearchParams();
 
   const [showModal, setShowModal] = useState(false);
+  const [showNoSignatureModal, setShowNoSignatureModal] = useState(false);
   const { user, loading, signOut } = useAuth();
 
   // Escuchar si la URL pide abrir el modal
   useEffect(() => {
     if (searchParams.get("newInspection") === "true") {
+      if (user?.id) {
+        const savedSig = localStorage.getItem(`sivac_signature_user_${user.id}`);
+        if (!savedSig) {
+          setShowNoSignatureModal(true);
+          // Limpiar parámetro
+          const params = new URLSearchParams(window.location.search);
+          params.delete("newInspection");
+          const queryStr = params.toString();
+          router.replace(pathname + (queryStr ? `?${queryStr}` : ""));
+          return;
+        }
+      }
       setShowModal(true);
     }
-  }, [searchParams]);
+  }, [searchParams, user, pathname, router]);
+
+  const handleOpenNewInspection = () => {
+    if (user?.id) {
+      const savedSig = localStorage.getItem(`sivac_signature_user_${user.id}`);
+      if (!savedSig) {
+        setShowNoSignatureModal(true);
+        return;
+      }
+    }
+    setShowModal(true);
+  };
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -163,7 +187,7 @@ export function Sidebar() {
       name: "Configuración",
       href: "/admin/configuracion",
       icon: <Settings size={18} strokeWidth={2} />,
-      roles: ["Admin"],
+      roles: ["Admin", "Auditor"],
     },
     {
       name: "Notificaciones",
@@ -272,16 +296,16 @@ export function Sidebar() {
           })}
         </nav>
 
-        {/* Action Button — Solo visible para Auditor */}
-        {ROL_ACTIVO === "Auditor" && (
+        {/* Action Button — Visible para Auditor y Admin */}
+        {(ROL_ACTIVO === "Auditor" || ROL_ACTIVO === "Admin") && (
           <div className="p-4 border-t border-sivac-border">
             <button
               type="button"
-              onClick={() => setShowModal(true)}
+              onClick={handleOpenNewInspection}
               className="w-full h-[40px] flex items-center justify-center gap-2 rounded bg-sivac-blue hover:bg-blue-700 text-sivac-surface text-12 font-bold tracking-wide-06 transition-colors shadow-lg shadow-sivac-blue/10 uppercase cursor-pointer"
             >
               <Plus size={16} strokeWidth={2.5} />
-              NUEVA INSPECCIÓN
+              NUEVA VISITA
             </button>
           </div>
         )}
@@ -293,21 +317,16 @@ export function Sidebar() {
           {currentUser.iniciales}
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="text-14 font-semibold text-sivac-heading truncate leading-none mb-1">
+          <h4 className="text-14 font-semibold text-sivac-heading truncate leading-none mb-2">
             {currentUser.nombre}
           </h4>
-          <div className="flex items-center gap-2">
-            <span className="text-12 font-medium text-sivac-muted truncate leading-none">
-              ID: {currentUser.id}
-            </span>
-            <span
-              className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border leading-none ${getRolColor(
-                currentUser.rol
-              )}`}
-            >
-              {getRolLabel(currentUser.rol)}
-            </span>
-          </div>
+          <span
+            className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border leading-none ${getRolColor(
+              currentUser.rol
+            )}`}
+          >
+            {getRolLabel(currentUser.rol)}
+          </span>
         </div>
         {/* Logout Visual Link */}
         <button
@@ -364,6 +383,46 @@ export function Sidebar() {
                 className="h-[40px] px-6 rounded-lg text-13 font-bold transition-all uppercase tracking-wider bg-sivac-blue hover:bg-blue-700 text-sivac-surface shadow-lg shadow-sivac-blue/15 cursor-pointer"
               >
                 Aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Advertencia de Firma Requerida */}
+      {showNoSignatureModal && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn text-sivac-light no-print">
+          <div className="bg-sivac-bg-surface border border-white/10 rounded-2xl p-6 sm:p-8 max-w-sm w-full text-center space-y-6 shadow-2xl relative">
+            <div className="w-14 h-14 rounded-full bg-red-500/15 text-red-400 mx-auto flex items-center justify-center border border-red-500/30 animate-pulse">
+              <Settings size={28} />
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-18 font-bold font-poppins text-sivac-heading leading-tight">
+                Firma Requerida
+              </h3>
+              <p className="text-13 leading-relaxed text-sivac-body">
+                No puedes realizar una visita de supervisión hasta que registres tu firma digital en la sección de Configuración.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNoSignatureModal(false);
+                  router.push("/admin/configuracion");
+                }}
+                className="w-full sm:w-auto h-[40px] px-5 rounded-lg text-13 font-bold bg-sivac-blue hover:bg-blue-700 text-sivac-surface transition-all cursor-pointer uppercase tracking-wider shadow-lg shadow-sivac-blue/15"
+              >
+                Configurar Firma
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowNoSignatureModal(false)}
+                className="w-full sm:w-auto h-[40px] px-5 rounded-lg text-13 font-semibold border border-white/10 text-sivac-body hover:text-sivac-heading hover:bg-sivac-bg-toggle transition-colors cursor-pointer"
+              >
+                Cerrar
               </button>
             </div>
           </div>

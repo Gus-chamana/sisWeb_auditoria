@@ -3,7 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
-import { Plus, Search, Eye, Edit2, ChevronLeft, ChevronRight, Check, X, Play, FileDown, Trash2, Loader2 } from "lucide-react";
+import { Plus, Search, Eye, Edit2, ChevronLeft, ChevronRight, Check, X, Play, FileDown, Trash2, Loader2, Camera } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { createClient } from "@/utils/supabase/client";
 
@@ -29,17 +29,6 @@ export default function VisitasPage() {
   const { user, loading } = useAuth();
   const supabase = createClient();
 
-  if (loading || !user) {
-    return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-10 bg-white/5 rounded-lg w-1/4" />
-        <div className="h-40 bg-white/5 rounded-lg w-full" />
-      </div>
-    );
-  }
-
-  const ROL_ACTIVO = user.rol;
-
   // --- Estado ---
   const [allVisits, setAllVisits] = React.useState<Visit[]>([]);
   const [loadingVisits, setLoadingVisits] = React.useState(true);
@@ -63,9 +52,10 @@ export default function VisitasPage() {
 
   // --- Cargar visitas desde Supabase ---
   const fetchVisitas = React.useCallback(async () => {
+    if (!user) return;
     setLoadingVisits(true);
     try {
-      const { data: dbVisits, error } = await supabase
+      let query = supabase
         .from("visitas")
         .select(`
           id,
@@ -81,8 +71,14 @@ export default function VisitasPage() {
           docente:usuarios!visitas_docente_id_fkey(nombres, apellidos),
           evidencias_fotos(id)
         `)
-        .is("deleted_at", null)
-        .order("id", { ascending: false });
+        .is("deleted_at", null);
+
+      // Los auditores solo pueden ver sus propias visitas creadas
+      if (user.rol === "Auditor") {
+        query = query.eq("auditor_id", parseInt(user.id, 10));
+      }
+
+      const { data: dbVisits, error } = await query.order("id", { ascending: false });
 
       if (error) {
         console.error("Error fetching visitas:", error);
@@ -114,9 +110,9 @@ export default function VisitasPage() {
             statusText,
             fecha: item.fecha_visita || "—",
             docente: `${item.docente?.nombres || ""} ${item.docente?.apellidos || ""}`.trim() || "Docente sin asignar",
-            sede: item.sedes?.nombre || "—",
+            sede: item.sedes?.nombre ? item.sedes.nombre.replace(" (Inactivo)", "") : "—",
             sedeId: item.sedes?.id || item.sede_id || null,
-            aula: item.aulas?.nombre || "—",
+            aula: item.aulas?.nombre ? item.aulas.nombre.replace(" (Inactivo)", "") : "—",
             semana: item.semana_nro || 1,
             hasEvidence: !!hasEvidence,
             estadoId: item.estado_id || 1,
@@ -130,7 +126,7 @@ export default function VisitasPage() {
     } finally {
       setLoadingVisits(false);
     }
-  }, [supabase]);
+  }, [supabase, user]);
 
   // --- Eliminación ---
   const handleDeleteVisita = async (id: string) => {
@@ -153,9 +149,11 @@ export default function VisitasPage() {
 
   // --- Efectos ---
   React.useEffect(() => {
-    fetchVisitas();
-    fetchSedes();
-  }, [fetchVisitas, fetchSedes]);
+    if (user) {
+      fetchVisitas();
+      fetchSedes();
+    }
+  }, [fetchVisitas, fetchSedes, user]);
 
   // --- Filtrado reactivo en cliente ---
   const filteredVisits = React.useMemo(() => {
@@ -191,6 +189,17 @@ export default function VisitasPage() {
   React.useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, sedeFilter, estadoFilter]);
+
+  if (loading || !user) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-10 bg-white/5 rounded-lg w-1/4" />
+        <div className="h-40 bg-white/5 rounded-lg w-full" />
+      </div>
+    );
+  }
+
+  const ROL_ACTIVO = user.rol;
 
   // Asegurar que currentPage no exceda totalPages
   const safePage = Math.min(currentPage, totalPages);
@@ -247,14 +256,16 @@ export default function VisitasPage() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => router.push("?newInspection=true")}
-          className="h-[40px] px-5 bg-sivac-blue hover:bg-blue-700 rounded-lg text-14 text-sivac-surface transition-colors flex items-center gap-2 font-bold uppercase tracking-wide-06"
-        >
-          <Plus size={16} strokeWidth={2.5} />
-          <span>Nueva Inspección</span>
-        </button>
+        {(ROL_ACTIVO === "Admin" || ROL_ACTIVO === "Auditor") && (
+          <button
+            type="button"
+            onClick={() => router.push("?newInspection=true")}
+            className="h-[40px] px-5 bg-sivac-blue hover:bg-blue-700 rounded-lg text-14 text-sivac-surface transition-colors flex items-center gap-2 font-bold uppercase tracking-wide-06 cursor-pointer"
+          >
+            <Plus size={16} strokeWidth={2.5} />
+            <span>Nueva Visita</span>
+          </button>
+        )}
       </div>
 
       {/* Search and Filters Bar — FILTROS CONTROLADOS Y DINÁMICOS */}
@@ -311,9 +322,6 @@ export default function VisitasPage() {
             <thead>
               <tr className="bg-sivac-bg-input-admin border-b border-sivac-border-card">
                 <th className="px-6 py-4 text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">
-                  ID
-                </th>
-                <th className="px-6 py-4 text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">
                   ESTADO
                 </th>
                 <th className="px-6 py-4 text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">
@@ -339,12 +347,12 @@ export default function VisitasPage() {
             <tbody className="divide-y divide-sivac-border-card">
               {paginatedVisits.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center">
+                  <td colSpan={7} className="px-6 py-12 text-center">
                     <div className="space-y-2">
                       <p className="text-14 text-sivac-muted font-medium">
                         {searchTerm || sedeFilter !== "all" || estadoFilter !== "all"
                           ? "No se encontraron visitas con los filtros aplicados."
-                          : "No hay visitas registradas en la base de datos."}
+                          : "No hay visitas registradas."}
                       </p>
                       {(searchTerm || sedeFilter !== "all" || estadoFilter !== "all") && (
                         <button
@@ -365,9 +373,6 @@ export default function VisitasPage() {
               ) : (
                 paginatedVisits.map((visit) => (
                   <tr key={visit.id} className="hover:bg-sivac-bg-secondary/20 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-14 font-bold text-sivac-muted">
-                      #{visit.id}
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Badge variant={visit.status}>{visit.statusText}</Badge>
                     </td>
@@ -385,15 +390,18 @@ export default function VisitasPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <div className="flex justify-center">
-                        {visit.hasEvidence ? (
-                          <span title="Tiene evidencia">
-                            <Check size={20} className="text-sivac-green-light" />
-                          </span>
-                        ) : (
-                          <span title="Sin evidencia">
-                            <X size={20} className="text-sivac-red-light" />
-                          </span>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/admin/evidencias?visitaId=${visit.id}`)}
+                          className="focus:outline-none hover:scale-110 transition-transform cursor-pointer"
+                          title={visit.hasEvidence ? "Ver evidencias fotográficas" : "Cargar evidencias fotográficas"}
+                        >
+                          {visit.hasEvidence ? (
+                            <Check size={20} className="text-sivac-green-light bg-sivac-green/10 p-0.5 rounded" />
+                          ) : (
+                            <X size={20} className="text-sivac-red-light bg-sivac-red/10 p-0.5 rounded" />
+                          )}
+                        </button>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -435,6 +443,14 @@ export default function VisitasPage() {
                         {(visit.status === "green" || visit.status === "red") && (
                           /* Completada u Observada */
                           <>
+                            <button
+                              type="button"
+                              onClick={() => router.push(`/admin/evidencias?visitaId=${visit.id}`)}
+                              className="p-1.5 text-sivac-muted hover:text-sivac-indigo transition-colors rounded-lg hover:bg-sivac-bg-secondary/40 cursor-pointer"
+                              title="Ver evidencias fotográficas"
+                            >
+                              <Camera size={18} strokeWidth={2} />
+                            </button>
                             <button
                               type="button"
                               onClick={() => router.push(`/admin/reportes`)}

@@ -25,6 +25,19 @@ import { FormatoVisitaUTP, type FormatoVisitaUTPProps } from "@/components/Dise�
 import { useAuth } from "@/lib/AuthContext";
 import { createClient } from "@/utils/supabase/client";
 
+const parseAsistenciaObs = (rawObs: string) => {
+  if (!rawObs) return { alumnosAmbiente: "" as number | "", alumnosIntranet: "" as number | "", observaciones: "" };
+  const match = rawObs.match(/^\[alumnos_ambiente:(\d*),alumnos_intranet:(\d*)\](.*)$/s);
+  if (match) {
+    return {
+      alumnosAmbiente: match[1] === "" ? "" : parseInt(match[1], 10),
+      alumnosIntranet: match[2] === "" ? "" : parseInt(match[2], 10),
+      observaciones: match[3].trim()
+    };
+  }
+  return { alumnosAmbiente: "" as number | "", alumnosIntranet: "" as number | "", observaciones: rawObs };
+};
+
 // -----------------------------------------------------------
 // Interfaz para los registros de auditoría desde Supabase
 // -----------------------------------------------------------
@@ -47,6 +60,8 @@ interface AuditRecord {
   campoFormativo: string;
   horasPracticaTeoria: string;
   requerimientosSolicitados: string;
+  firmaDocenteUrl: string;
+  firmaAuditorUrl: string;
 
   // Detalle de evaluaciones (se cargan bajo demanda)
   evalControl?: {
@@ -98,8 +113,8 @@ const mapHorario = (id: number | null | undefined): "Cumple" | "No Cumple" | "" 
 };
 
 const mapInteraccion = (id: number | null | undefined): "SI" | "NO" | "" => {
-  if (id === 8) return "SI";
-  if (id === 9) return "NO";
+  if (id === 1) return "SI";
+  if (id === 2) return "NO";
   return "";
 };
 
@@ -151,6 +166,18 @@ const mapEstado = (estadoId: number | null | undefined): "Cumplido" | "Pendiente
   return "Pendiente";
 };
 
+// Firmas predeterminadas para Auditor y Admin (en formato SVG Base64)
+const getPredefinedSignature = (name: string): string => {
+  const normalized = name.toLowerCase().trim();
+  if (normalized.includes("diana") || normalized.includes("auditora")) {
+    return "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgNjAiIHdpZHRoPSIxMjAiIGhlaWdodD0iMzYiPjxwYXRoIGQ9Ik0gMTAgMzAgUSAzMCAxMCA1MCAzMCBUIDkwIDMwIFQgMTMwIDMwIFQgMTcwIDMwIiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDMzYWEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiAvPjxwYXRoIGQ9Ik0gMjAgNDAgUSA2MCAxNSAxMDAgMzUgVCAxNjAgMjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMzNhYSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgLz48dGV4dCB4PSIyNSIgeT0iNTUiIGZvbnQtZmFtaWx5PSImYXBvcztCcnVzaCBTY3JpcHQgTVQmYXBvczssIGN1cnNpdmUsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiMwMDMzYWEiPkRpYW5hIEF1ZGl0b3JhPC90ZXh0Pjwvc3ZnPg==";
+  }
+  if (normalized.includes("admin") || normalized.includes("administrador")) {
+    return "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgNjAiIHdpZHRoPSIxMjAiIGhlaWdodD0iMzYiPjxwYXRoIGQ9Ik0gMTUgMjUgUSAzNSA1IDYwIDM1IFQgMTEwIDI1IFQgMTUwIDM1IFQgMTgwIDIwIiBmaWxsPSJub25lIiBzdHJva2U9IiMxMTIyODgiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiAvPjxwYXRoIGQ9Ik0gMjUgMzUgUSA3NSAxMCAxMTUgMzAgVCAxNzUgMTUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzExMjI4OCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgLz48dGV4dCB4PSMzNSIgeT0iNTIiIGZvbnQtZmFtaWx5PSImYXBvcztCcnVzaCBTY3JpcHQgTVQmYXBvczssIGN1cnNpdmUsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiMxMTIyODgiPkFkbWluaXN0cmFkb3I8L3RleHQ+PC9zdmc+";
+  }
+  return "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgNjAiIHdpZHRoPSIxMjAiIGhlaWdodD0iMzYiPjxwYXRoIGQ9Ik0gMTAgMzAgUSAzMCAxMCA1MCAzMCBUIDkwIDMwIFQgMTMwIDMwIFQgMTcwIDMwIiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDMzYWEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiAvPjxwYXRoIGQ9Ik0gMjAgNDAgUSA2MCAxNSAxMDAgMzUgVCAxNjAgMjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMzNhYSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgLz48dGV4dCB4PSIyNSIgeT0iNTUiIGZvbnQtZmFtaWx5PSImYXBvcztCcnVzaCBTY3JpcHQgTVQmYXBvczssIGN1cnNpdmUsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiMwMDMzYWEiPkRpYW5hIEF1ZGl0b3JhPC90ZXh0Pjwvc3ZnPg==";
+};
+
 export default function ReportesPage() {
   const { user, loading } = useAuth();
   const supabase = createClient();
@@ -169,17 +196,7 @@ export default function ReportesPage() {
   const [checkedAuditIds, setCheckedAuditIds] = useState<string[]>([]);
   const [sedes, setSedes] = useState<{ id: number; nombre: string }[]>([]);
 
-  // --- Loading guard ---
-  if (loading || !user) {
-    return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-10 bg-white/5 rounded-lg w-1/4" />
-        <div className="h-60 bg-white/5 rounded-lg w-full" />
-      </div>
-    );
-  }
-
-  const ROL_ACTIVO = user.rol;
+  const ROL_ACTIVO = user?.rol;
   const currentUser = user;
 
   // --- Cargar sedes desde Supabase para los filtros dinámicos ---
@@ -207,11 +224,13 @@ export default function ReportesPage() {
           campo_formativo,
           horas_teoria_practica,
           requerimientos_solicitados,
+          firma_docente_b64,
+          firma_auditor_b64,
           sedes(id, nombre),
           aulas(nombre),
           asignaturas(nombre),
           docente:usuarios!visitas_docente_id_fkey(id, nombres, apellidos),
-          auditor:usuarios!visitas_auditor_id_fkey(nombres, apellidos),
+          auditor:usuarios!visitas_auditor_id_fkey(id, nombres, apellidos),
           eval_control_docente(presente_id, horario_id, interaccion_id, actividad_detalle, observaciones),
           eval_academica_detalle(material_cumple_id, obs_material, silabo_coincide_actual_id, silabo_coincide_anterior_id, silabo_virtual_id, obs_avance_silabico),
           eval_asistencia(ambiente_cumple_id, intranet_cumple_id, observaciones),
@@ -239,14 +258,26 @@ export default function ReportesPage() {
 
         const auditorNombres = v.auditor?.nombres || "";
         const auditorApellidos = v.auditor?.apellidos || "";
-        const auditorNombre = `${auditorNombres} ${auditorApellidos}`.trim() || "";
+        let auditorNombre = `${auditorNombres} ${auditorApellidos}`.trim();
+        if (!auditorNombre && v.auditor?.id === 9) {
+          auditorNombre = "Administrador";
+        } else if (!auditorNombre) {
+          auditorNombre = "Diana Auditora";
+        }
 
-        // eval_control_docente, eval_academica_detalle, etc. son objetos o arrays según Supabase
-        // Como la relación es 1:1 (visita_id es PK), Supabase retorna un objeto si existe
-        const evalControl = v.eval_control_docente || null;
-        const evalAcademica = v.eval_academica_detalle || null;
-        const evalAsistencia = v.eval_asistencia || null;
-        const evalGuia = v.eval_guia_practica || null;
+        // Relaciones 1:1 representadas por arrays en PostgREST
+        const evalControl = Array.isArray(v.eval_control_docente)
+          ? v.eval_control_docente[0]
+          : (v.eval_control_docente || null);
+        const evalAcademica = Array.isArray(v.eval_academica_detalle)
+          ? v.eval_academica_detalle[0]
+          : (v.eval_academica_detalle || null);
+        const evalAsistencia = Array.isArray(v.eval_asistencia)
+          ? v.eval_asistencia[0]
+          : (v.eval_asistencia || null);
+        const evalGuia = Array.isArray(v.eval_guia_practica)
+          ? v.eval_guia_practica[0]
+          : (v.eval_guia_practica || null);
 
         return {
           id: v.id.toString(),
@@ -260,13 +291,15 @@ export default function ReportesPage() {
           ciclo: v.ciclo || "",
           turno: v.turno || "",
           fechaVisita: formatDateDisplay(v.fecha_visita),
-          horaInicio: formatTimeDisplay(v.hora_inicio_real),
-          horaTermino: formatTimeDisplay(v.hora_termino_real),
+          horaInicio: formatTimeDisplay(v.hora_inicio_real) || (v.turno === "Noche" ? "18:30" : v.turno === "Tarde" ? "14:00" : "08:00"),
+          horaTermino: formatTimeDisplay(v.hora_termino_real) || (v.turno === "Noche" ? "20:00" : v.turno === "Tarde" ? "15:30" : "09:30"),
           estado: mapEstado(v.estado_id),
           semanaNo: v.semana_nro?.toString() || "",
           campoFormativo: v.campo_formativo || "Ingeniería de Software / Tecnologías de la Información",
           horasPracticaTeoria: v.horas_teoria_practica || (v.turno === "Noche" ? "Teoría y Práctica Integrada" : "Práctica de Laboratorio"),
           requerimientosSolicitados: v.requerimientos_solicitados || "",
+          firmaDocenteUrl: v.firma_docente_b64 || "",
+          firmaAuditorUrl: v.firma_auditor_b64 || "",
           evalControl,
           evalAcademica,
           evalAsistencia,
@@ -285,57 +318,61 @@ export default function ReportesPage() {
     } finally {
       setLoadingAudits(false);
     }
-  }, [supabase, ROL_ACTIVO, currentUser.id]);
+  }, [supabase, ROL_ACTIVO, currentUser?.id]);
 
   // --- Efectos ---
   useEffect(() => {
-    fetchAudits();
-    fetchSedes();
-  }, [fetchAudits, fetchSedes]);
+    if (user) {
+      fetchAudits();
+      fetchSedes();
+    }
+  }, [fetchAudits, fetchSedes, user]);
 
   // --- Filtrado reactivo en cliente ---
-  const filteredAudits = audits.filter((audit) => {
-    const matchesSearch =
-      audit.aula.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      audit.docenteNombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      audit.asignatura.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredAudits = React.useMemo(() => {
+    return audits.filter((audit) => {
+      const matchesSearch =
+        audit.aula.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        audit.docenteNombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        audit.asignatura.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesSede =
-      sedeFilter === "all" ||
-      audit.sedeFilial.toLowerCase().includes(sedeFilter.toLowerCase());
+      const matchesSede =
+        sedeFilter === "all" ||
+        audit.sedeFilial.toLowerCase().includes(sedeFilter.toLowerCase());
 
-    const matchesState =
-      stateFilter === "all" ||
-      (stateFilter === "cumplido" && audit.estado === "Cumplido") ||
-      (stateFilter === "pendiente" && audit.estado === "Pendiente") ||
-      (stateFilter === "en_progreso" && audit.estado === "En progreso") ||
-      (stateFilter === "observada" && audit.estado === "Observada");
+      const matchesState =
+        stateFilter === "all" ||
+        (stateFilter === "cumplido" && audit.estado === "Cumplido") ||
+        (stateFilter === "pendiente" && audit.estado === "Pendiente") ||
+        (stateFilter === "en_progreso" && audit.estado === "En progreso") ||
+        (stateFilter === "observada" && audit.estado === "Observada");
 
-    // Filtrar por rango de fechas (la fecha está en DD/MM/YYYY)
-    if (startDate || endDate) {
-      const parts = audit.fechaVisita.split("/");
-      if (parts.length === 3) {
-        const auditDate = new Date(
-          parseInt(parts[2], 10),
-          parseInt(parts[1], 10) - 1,
-          parseInt(parts[0], 10)
-        );
+      // Filtrar por rango de fechas (la fecha está en DD/MM/YYYY)
+      if (startDate || endDate) {
+        const parts = audit.fechaVisita.split("/");
+        if (parts.length === 3) {
+          const auditDate = new Date(
+            parseInt(parts[2], 10),
+            parseInt(parts[1], 10) - 1,
+            parseInt(parts[0], 10)
+          );
 
-        if (startDate) {
-          const sParts = startDate.split("-");
-          const start = new Date(parseInt(sParts[0], 10), parseInt(sParts[1], 10) - 1, parseInt(sParts[2], 10));
-          if (auditDate < start) return false;
-        }
-        if (endDate) {
-          const eParts = endDate.split("-");
-          const end = new Date(parseInt(eParts[0], 10), parseInt(eParts[1], 10) - 1, parseInt(eParts[2], 10));
-          if (auditDate > end) return false;
+          if (startDate) {
+            const sParts = startDate.split("-");
+            const start = new Date(parseInt(sParts[0], 10), parseInt(sParts[1], 10) - 1, parseInt(sParts[2], 10));
+            if (auditDate < start) return false;
+          }
+          if (endDate) {
+            const eParts = endDate.split("-");
+            const end = new Date(parseInt(eParts[0], 10), parseInt(eParts[1], 10) - 1, parseInt(eParts[2], 10));
+            if (auditDate > end) return false;
+          }
         }
       }
-    }
 
-    return matchesSearch && matchesSede && matchesState;
-  });
+      return matchesSearch && matchesSede && matchesState;
+    });
+  }, [audits, searchTerm, sedeFilter, stateFilter, startDate, endDate]);
 
   // --- Agrupamiento por aula ---
   const groupedAudits = React.useMemo(() => {
@@ -350,11 +387,25 @@ export default function ReportesPage() {
 
   // --- Limpiar selecciones que desaparecen por filtro ---
   useEffect(() => {
-    if (checkedAuditIds.length > 0) {
-      const visibleIds = new Set(filteredAudits.map((a) => a.id));
-      setCheckedAuditIds((prev) => prev.filter((id) => visibleIds.has(id)));
-    }
+    const visibleIds = new Set(filteredAudits.map((a) => a.id));
+    setCheckedAuditIds((prev) => {
+      const next = prev.filter((id) => visibleIds.has(id));
+      if (next.length !== prev.length) {
+        return next;
+      }
+      return prev;
+    });
   }, [filteredAudits]);
+
+  // --- Loading guard ---
+  if (loading || !user) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-10 bg-white/5 rounded-lg w-1/4" />
+        <div className="h-60 bg-white/5 rounded-lg w-full" />
+      </div>
+    );
+  }
 
   // --- Handlers de selección ---
   const toggleAulaExpand = (aula: string) => {
@@ -388,6 +439,65 @@ export default function ReportesPage() {
     window.print();
   };
 
+  const handleDownloadPDF = async () => {
+    if (checkedAuditIds.length === 0) return;
+    const html2pdf = (await import("html2pdf.js")).default;
+
+    if (checkedAuditIds.length === 1) {
+      // Descarga individual
+      const id = checkedAuditIds[0];
+      const element = document.getElementById(`report-card-${id}`);
+      if (!element) return;
+
+      const audit = audits.find((a) => a.id === id);
+      const filename = audit
+        ? `Ficha_Visita_${audit.sedeFilial.split(" - ")[0]}_${audit.aula}_${audit.fechaVisita.replace(/\//g, "-")}.pdf`
+        : `Reporte_Visita_${id}.pdf`;
+
+      const opt = {
+        margin: 0,
+        filename: filename,
+        image: { type: "jpeg", quality: 1.0 },
+        html2canvas: { scale: 3, useCORS: true, letterRendering: true },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      };
+
+      html2pdf().from(element).set(opt).save();
+    } else {
+      // Descarga conjunta en un único archivo PDF multipágina
+      const container = document.createElement("div");
+
+      for (const id of checkedAuditIds) {
+        const element = document.getElementById(`report-card-${id}`);
+        if (!element) continue;
+
+        // Clonar para no alterar la vista actual del DOM
+        const clone = element.cloneNode(true) as HTMLElement;
+        // Remover estilos de sombreado y bordes del contenedor en pantalla para el PDF
+        clone.style.boxShadow = "none";
+        clone.style.borderRadius = "0";
+        clone.style.margin = "0";
+        clone.style.padding = "0";
+        clone.style.display = "block";
+
+        container.appendChild(clone);
+      }
+
+      const filename = `Reporte_Conjunto_Visitas_${new Date().toISOString().split("T")[0]}.pdf`;
+
+      const opt = {
+        margin: 0,
+        filename: filename,
+        image: { type: "jpeg", quality: 1.0 },
+        html2canvas: { scale: 3, useCORS: true, letterRendering: true },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["css", "legacy"] }, // Respeta break-after: page y estilos .print-sheet
+      };
+
+      html2pdf().from(container).set(opt).save();
+    }
+  };
+
   // --- Transformar un AuditRecord a props de FormatoVisitaUTP ---
   const getReportData = (audit: AuditRecord): FormatoVisitaUTPProps => {
     if (templateMode === "empty") return {};
@@ -396,6 +506,8 @@ export default function ReportesPage() {
     const ea = audit.evalAcademica;
     const eas = audit.evalAsistencia;
     const eg = audit.evalGuia;
+
+    const parsedAsistencia = parseAsistenciaObs(eas?.observaciones || "");
 
     return {
       fechaVisita: audit.fechaVisita,
@@ -424,10 +536,10 @@ export default function ReportesPage() {
 
       // Sección 3: Asistencia
       asistenciaAmbiente: mapAmbienteCumple(eas?.ambiente_cumple_id),
-      asistenciaAmbienteObs: "",
+      asistenciaAmbienteObs: parsedAsistencia.alumnosAmbiente !== "" ? `${parsedAsistencia.alumnosAmbiente} alumnos` : "",
       asistenciaIntranet: mapAmbienteCumple(eas?.intranet_cumple_id),
-      asistenciaIntranetObs: "",
-      obs3: eas?.observaciones || "",
+      asistenciaIntranetObs: parsedAsistencia.alumnosIntranet !== "" ? `${parsedAsistencia.alumnosIntranet} alumnos` : "",
+      obs3: parsedAsistencia.observaciones,
 
       // Sección 4: Avance Silábico
       silaboCoincide: mapCumple(ea?.silabo_coincide_actual_id),
@@ -444,6 +556,16 @@ export default function ReportesPage() {
       // Pie del reporte
       responsableActividad: audit.auditorNombre || "",
       requerimientosSolicitados: audit.requerimientosSolicitados,
+      firmaDocenteUrl: audit.firmaDocenteUrl,
+      firmaResponsableUrl: audit.firmaAuditorUrl || (() => {
+        if (typeof window !== "undefined" && user?.id) {
+          const localSig = localStorage.getItem(`sivac_signature_user_${user.id}`);
+          if (localSig && user.nombres && audit.auditorNombre.toLowerCase().includes(user.nombres.toLowerCase())) {
+            return localSig;
+          }
+        }
+        return getPredefinedSignature(audit.auditorNombre);
+      })(),
     };
   };
 
@@ -794,11 +916,12 @@ export default function ReportesPage() {
             
             <button
               type="button"
+              onClick={handleDownloadPDF}
               className="h-[36px] px-3 border border-sivac-border-card hover:bg-sivac-bg-secondary text-sivac-body hover:text-sivac-heading rounded-lg transition-colors flex items-center justify-center gap-1 text-12"
-              title="Descargar en formato PDF oficial"
+              title="Descargar PDF Directo"
             >
               <Download size={15} />
-              <span className="hidden sm:inline">PDF</span>
+              <span className="hidden sm:inline">Descargar PDF</span>
             </button>
           </div>
         </div>
@@ -813,6 +936,7 @@ export default function ReportesPage() {
               return (
                 <div
                   key={audit.id}
+                  id={`report-card-${audit.id}`}
                   className="shadow-2xl shadow-black/80 rounded-lg print:shadow-none print:rounded-none print:break-after-page"
                 >
                   <FormatoVisitaUTP {...data} />
