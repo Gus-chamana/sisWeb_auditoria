@@ -88,21 +88,27 @@ export default function VisitasPage() {
 
       if (dbVisits) {
         const mappedVisits: Visit[] = dbVisits.map((item: any) => {
+          const hasEvidence = item.evidencias_fotos && item.evidencias_fotos.length > 0;
+
+          // Si la visita está completada o observada, su estado real depende de la presencia de evidencia
+          let effectiveEstadoId = item.estado_id;
+          if (item.estado_id === 3 || item.estado_id === 4) {
+            effectiveEstadoId = hasEvidence ? 3 : 4;
+          }
+
           let status: "green" | "yellow" | "gray" | "red" = "gray";
           let statusText = "Pendiente";
 
-          if (item.estado_id === 2) {
+          if (effectiveEstadoId === 2) {
             status = "yellow";
             statusText = "En progreso";
-          } else if (item.estado_id === 3) {
+          } else if (effectiveEstadoId === 3) {
             status = "green";
             statusText = "Completada";
-          } else if (item.estado_id === 4) {
+          } else if (effectiveEstadoId === 4) {
             status = "red";
             statusText = "Observada";
           }
-
-          const hasEvidence = item.evidencias_fotos && item.evidencias_fotos.length > 0;
 
           return {
             id: item.id.toString(),
@@ -115,7 +121,7 @@ export default function VisitasPage() {
             aula: item.aulas?.nombre ? item.aulas.nombre.replace(" (Inactivo)", "") : "—",
             semana: item.semana_nro || 1,
             hasEvidence: !!hasEvidence,
-            estadoId: item.estado_id || 1,
+            estadoId: effectiveEstadoId || 1,
           };
         });
 

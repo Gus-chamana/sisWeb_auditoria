@@ -234,7 +234,8 @@ export default function ReportesPage() {
           eval_control_docente(presente_id, horario_id, interaccion_id, actividad_detalle, observaciones),
           eval_academica_detalle(material_cumple_id, obs_material, silabo_coincide_actual_id, silabo_coincide_anterior_id, silabo_virtual_id, obs_avance_silabico),
           eval_asistencia(ambiente_cumple_id, intranet_cumple_id, observaciones),
-          eval_guia_practica(cumple_tema_id, evidencia_logro_id, cuenta_rubrica_id, observaciones)
+          eval_guia_practica(cumple_tema_id, evidencia_logro_id, cuenta_rubrica_id, observaciones),
+          evidencias_fotos(id)
         `)
         .is("deleted_at", null)
         .order("id", { ascending: false });
@@ -279,6 +280,12 @@ export default function ReportesPage() {
           ? v.eval_guia_practica[0]
           : (v.eval_guia_practica || null);
 
+        const hasEvidence = v.evidencias_fotos && v.evidencias_fotos.length > 0;
+        let effectiveEstadoId = v.estado_id;
+        if (v.estado_id === 3 || v.estado_id === 4) {
+          effectiveEstadoId = hasEvidence ? 3 : 4;
+        }
+
         return {
           id: v.id.toString(),
           aula: v.aulas?.nombre || "Aula no asignada",
@@ -293,7 +300,7 @@ export default function ReportesPage() {
           fechaVisita: formatDateDisplay(v.fecha_visita),
           horaInicio: formatTimeDisplay(v.hora_inicio_real) || (v.turno === "Noche" ? "18:30" : v.turno === "Tarde" ? "14:00" : "08:00"),
           horaTermino: formatTimeDisplay(v.hora_termino_real) || (v.turno === "Noche" ? "20:00" : v.turno === "Tarde" ? "15:30" : "09:30"),
-          estado: mapEstado(v.estado_id),
+          estado: mapEstado(effectiveEstadoId),
           semanaNo: v.semana_nro?.toString() || "",
           campoFormativo: v.campo_formativo || "Ingeniería de Software / Tecnologías de la Información",
           horasPracticaTeoria: v.horas_teoria_practica || (v.turno === "Noche" ? "Teoría y Práctica Integrada" : "Práctica de Laboratorio"),

@@ -31,6 +31,7 @@ interface VisitData {
   docente: { nombres: string; apellidos: string } | null;
   auditor: { nombres: string; apellidos: string } | null;
   created_at: string;
+  evidencias_fotos?: { id: number }[];
 }
 
 export default function DashboardPage() {
@@ -39,6 +40,14 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [visits, setVisits] = useState<VisitData[]>([]);
   const [sedes, setSedes] = useState<SedeData[]>([]);
+
+  const getEffectiveEstadoId = (v: VisitData) => {
+    if (v.estado_id === 3 || v.estado_id === 4) {
+      const hasEvidence = v.evidencias_fotos && v.evidencias_fotos.length > 0;
+      return hasEvidence ? 3 : 4;
+    }
+    return v.estado_id;
+  };
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -57,7 +66,8 @@ export default function DashboardPage() {
             aulas(nombre),
             asignaturas(nombre),
             docente:usuarios!visitas_docente_id_fkey(nombres, apellidos),
-            auditor:usuarios!visitas_auditor_id_fkey(nombres, apellidos)
+            auditor:usuarios!visitas_auditor_id_fkey(nombres, apellidos),
+            evidencias_fotos(id)
           `)
           .is("deleted_at", null);
 
@@ -99,14 +109,14 @@ export default function DashboardPage() {
 
   // KPIs
   const visitsToday = visits.filter(v => v.fecha_visita === todayStr).length;
-  const visitsPending = visits.filter(v => v.estado_id === 1).length;
-  const visitsCompleted = visits.filter(v => v.estado_id === 3).length;
-  const alertsActive = visits.filter(v => v.estado_id === 4).length; // Observadas
+  const visitsPending = visits.filter(v => getEffectiveEstadoId(v) === 1).length;
+  const visitsCompleted = visits.filter(v => getEffectiveEstadoId(v) === 3).length;
+  const alertsActive = visits.filter(v => getEffectiveEstadoId(v) === 4).length; // Observadas
   const totalVisits = visits.length;
 
   // Donut chart percentages
   const finalizadasCount = visitsCompleted;
-  const enCursoCount = visits.filter(v => v.estado_id === 2).length;
+  const enCursoCount = visits.filter(v => getEffectiveEstadoId(v) === 2).length;
   const pendientesCount = visitsPending;
   const observadasCount = alertsActive;
 
@@ -119,7 +129,7 @@ export default function DashboardPage() {
   const sedeCompliance = sedes.map(sede => {
     const sedeVisits = visits.filter(v => v.sede_id === sede.id);
     const total = sedeVisits.length;
-    const completed = sedeVisits.filter(v => v.estado_id === 3).length;
+    const completed = sedeVisits.filter(v => getEffectiveEstadoId(v) === 3).length;
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
     return {
       nombre: sede.nombre.split(" - ")[0],
@@ -131,7 +141,7 @@ export default function DashboardPage() {
   // Docentes con observaciones
   const docenteObservationsMap: Record<string, number> = {};
   visits.forEach(v => {
-    if (v.estado_id === 4 && v.docente) {
+    if (getEffectiveEstadoId(v) === 4 && v.docente) {
       const name = `${v.docente.nombres} ${v.docente.apellidos}`.trim();
       docenteObservationsMap[name] = (docenteObservationsMap[name] || 0) + 1;
     }
@@ -158,10 +168,11 @@ export default function DashboardPage() {
     }
   };
 
-  const getBadgeVariant = (estadoId: number): "green" | "blue" | "yellow" | "gray" => {
+  const getBadgeVariant = (estadoId: number): "green" | "blue" | "yellow" | "gray" | "red" => {
     if (estadoId === 3) return "green";
     if (estadoId === 2) return "blue";
     if (estadoId === 1) return "yellow";
+    if (estadoId === 4) return "red";
     return "gray";
   };
 
@@ -177,9 +188,10 @@ export default function DashboardPage() {
     const course = v.asignaturas?.nombre || "Asignatura";
     const aula = v.aulas?.nombre || "Aula";
     const auditorName = v.auditor ? `${v.auditor.nombres} ${v.auditor.apellidos}`.trim() : "Auditor";
-    if (v.estado_id === 3) return `Supervisión en ${aula} completada por ${auditorName}. Curso: ${course}.`;
-    if (v.estado_id === 4) return `Se registraron observaciones en ${aula}. Auditor: ${auditorName}.`;
-    if (v.estado_id === 2) return `Visita inopinada iniciada en ${aula} por ${auditorName}.`;
+    const effectiveEstadoId = getEffectiveEstadoId(v);
+    if (effectiveEstadoId === 3) return `Supervisión en ${aula} completada por ${auditorName}. Curso: ${course}.`;
+    if (effectiveEstadoId === 4) return `Se registraron observaciones en ${aula}. Auditor: ${auditorName}.`;
+    if (effectiveEstadoId === 2) return `Visita inopinada iniciada en ${aula} por ${auditorName}.`;
     return `Nueva visita programada para ${aula} con el curso ${course}.`;
   };
 
@@ -514,27 +526,30 @@ export default function DashboardPage() {
 
             {/* Timeline */}
             <div className="flex-1 relative border-l border-sivac-border-card ml-2.5 space-y-6 pb-2">
-              {visits.slice(0, 4).map((v, i) => (
-                <div key={v.id} className="relative pl-6 group">
-                  <div className={`absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-sivac-bg-card transition-transform group-hover:scale-125 ${
-                    v.estado_id === 3 ? "bg-sivac-green" :
-                    v.estado_id === 2 ? "bg-sivac-blue" :
-                    v.estado_id === 1 ? "bg-sivac-yellow" :
-                    "bg-sivac-red"
-                  }`} />
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <Badge variant={getBadgeVariant(v.estado_id)}>
-                        {getEventTitle(v.estado_id)}
-                      </Badge>
-                      <span className="text-11 text-sivac-dim">{formatTimeAgo(v.created_at)}</span>
+              {visits.slice(0, 4).map((v, i) => {
+                const effId = getEffectiveEstadoId(v);
+                return (
+                  <div key={v.id} className="relative pl-6 group">
+                    <div className={`absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-sivac-bg-card transition-transform group-hover:scale-125 ${
+                      effId === 3 ? "bg-sivac-green" :
+                      effId === 2 ? "bg-sivac-blue" :
+                      effId === 1 ? "bg-sivac-yellow" :
+                      "bg-sivac-red"
+                    }`} />
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <Badge variant={getBadgeVariant(effId)}>
+                          {getEventTitle(effId)}
+                        </Badge>
+                        <span className="text-11 text-sivac-dim">{formatTimeAgo(v.created_at)}</span>
+                      </div>
+                      <p className="text-12 font-normal text-sivac-body mt-1">
+                        {getEventText(v)}
+                      </p>
                     </div>
-                    <p className="text-12 font-normal text-sivac-body mt-1">
-                      {getEventText(v)}
-                    </p>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {visits.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center text-center py-20">

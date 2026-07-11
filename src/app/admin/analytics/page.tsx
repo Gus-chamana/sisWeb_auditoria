@@ -10,6 +10,7 @@ interface VisitData {
   fecha_visita: string;
   estado_id: number;
   sede_id: number;
+  evidencias_fotos?: { id: number }[];
 }
 
 export default function AnalyticsPage() {
@@ -17,13 +18,21 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [visits, setVisits] = useState<VisitData[]>([]);
 
+  const getEffectiveEstadoId = (v: VisitData) => {
+    if (v.estado_id === 3 || v.estado_id === 4) {
+      const hasEvidence = v.evidencias_fotos && v.evidencias_fotos.length > 0;
+      return hasEvidence ? 3 : 4;
+    }
+    return v.estado_id;
+  };
+
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
         const { data, error } = await supabase
           .from("visitas")
-          .select("id, fecha_visita, estado_id, sede_id")
+          .select("id, fecha_visita, estado_id, sede_id, evidencias_fotos(id)")
           .is("deleted_at", null);
 
         if (error) console.error("Error loading visits for analytics:", error);
@@ -39,8 +48,8 @@ export default function AnalyticsPage() {
 
   // --- Computations ---
   const totalVisits = visits.length;
-  const visitsCompleted = visits.filter(v => v.estado_id === 3).length;
-  const visitsObservadas = visits.filter(v => v.estado_id === 4).length;
+  const visitsCompleted = visits.filter(v => getEffectiveEstadoId(v) === 3).length;
+  const visitsObservadas = visits.filter(v => getEffectiveEstadoId(v) === 4).length;
 
   // CUMPLIMIENTO PROMEDIO
   const complianceAverage = totalVisits > 0 ? Math.round((visitsCompleted / totalVisits) * 1000) / 10 : 0;
@@ -62,7 +71,7 @@ export default function AnalyticsPage() {
       });
 
       const total = monthVisits.length;
-      const completed = monthVisits.filter(v => v.estado_id === 3).length;
+      const completed = monthVisits.filter(v => getEffectiveEstadoId(v) === 3).length;
       const compliance = total > 0 ? Math.round((completed / total) * 100) : 0;
       return {
         name: m.name,
