@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import {
   UploadCloud,
   Camera,
@@ -25,6 +25,7 @@ interface SIVACVisit {
   asignatura: string;
   docenteNombre: string;
   sedeNombre: string;
+  auditor_id?: number | null;
 }
 
 interface EvidenceCard {
@@ -37,20 +38,20 @@ interface EvidenceCard {
   url_foto: string;
 }
 
-export default function EvidenciasPage() {
+function EvidenciasContent() {
   const { user, loading } = useAuth();
   const supabase = createClient();
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // --- Estado ---
+  
   const [visits, setVisits] = useState<SIVACVisit[]>([]);
   const [selectedVisitId, setSelectedVisitId] = useState<string>("");
   const [evidences, setEvidences] = useState<EvidenceCard[]>([]);
   const [loadingVisits, setLoadingVisits] = useState(true);
   const [loadingEvidences, setLoadingEvidences] = useState(false);
   
-  // Subida de archivos
+  
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [uploadSection, setUploadSection] = useState<string>("Inicio de Clases");
@@ -61,13 +62,13 @@ export default function EvidenciasPage() {
   const selectedVisitObj = visits.find((v) => v.id.toString() === selectedVisitId);
   const esPropietario = selectedVisitObj && Number(selectedVisitObj.auditor_id) === Number(user?.id);
 
-  // El admin/auditor solo puede subir/eliminar evidencias si él mismo es el auditor de la visita.
-  // El docente nunca puede subir/eliminar evidencias.
+  
+  
   const esSoloConsulta = ROL_ACTIVO === "Docente" || 
     (ROL_ACTIVO === "Admin" && !esPropietario) || 
     (ROL_ACTIVO === "Auditor" && !esPropietario);
 
-  // --- Cargar visitas ---
+  
   const fetchVisits = useCallback(async () => {
     setLoadingVisits(true);
     try {
@@ -115,12 +116,12 @@ export default function EvidenciasPage() {
         });
         setVisits(mapped);
 
-        // Preselección por parámetro URL
+        
         const paramId = searchParams.get("visitaId");
         if (paramId) {
           setSelectedVisitId(paramId);
         } else if (mapped.length > 0) {
-          // Si no hay parámetro, seleccionar la primera visita por defecto
+          
           setSelectedVisitId(mapped[0].id.toString());
         }
       }
@@ -136,7 +137,7 @@ export default function EvidenciasPage() {
     visitsRef.current = visits;
   }, [visits]);
 
-  // --- Cargar evidencias de la visita seleccionada ---
+  
   const fetchEvidences = useCallback(async (visitaId: string, showLoader = false) => {
     if (!visitaId) {
       setEvidences([]);
@@ -160,7 +161,7 @@ export default function EvidenciasPage() {
       if (data) {
         const visitDetail = visitsRef.current.find(v => v.id.toString() === visitaId);
         const mapped: EvidenceCard[] = data.map((e: any) => {
-          // Extraer nombre del archivo desde el path o asignar nombre amigable si es base64
+          
           let filename = "foto.jpg";
           if (e.url_foto) {
             if (e.url_foto.startsWith("data:")) {
@@ -173,7 +174,7 @@ export default function EvidenciasPage() {
             }
           }
           
-          // Formatear fecha
+          
           let dateText = "Recién subido";
           if (e.fecha_captura) {
             try {
@@ -202,7 +203,7 @@ export default function EvidenciasPage() {
             filename,
             datetime: dateText,
             location: visitDetail ? `${visitDetail.sedeNombre} - ${visitDetail.aula}` : "Sede Central",
-            size: "1.5 MB", // Mock size
+            size: "1.5 MB", 
             url_foto: e.url_foto,
           };
         });
@@ -215,7 +216,7 @@ export default function EvidenciasPage() {
     }
   }, [supabase]);
 
-  // --- Efectos ---
+  
   useEffect(() => {
     if (user) {
       fetchVisits();
@@ -225,7 +226,7 @@ export default function EvidenciasPage() {
   useEffect(() => {
     if (selectedVisitId) {
       fetchEvidences(selectedVisitId, true);
-      // Sincronizar parámetro URL silenciosamente
+      
       const params = new URLSearchParams(window.location.search);
       if (params.get("visitaId") !== selectedVisitId) {
         router.replace(`?visitaId=${selectedVisitId}`, { scroll: false });
@@ -233,7 +234,7 @@ export default function EvidenciasPage() {
     }
   }, [selectedVisitId, fetchEvidences, router]);
 
-  // Helper to convert a file to base64
+  
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -243,7 +244,7 @@ export default function EvidenciasPage() {
     });
   };
 
-  // --- Subir archivos ---
+  
   const handleUploadFiles = async (files: File[]) => {
     if (!selectedVisitId) return;
     try {
@@ -258,7 +259,7 @@ export default function EvidenciasPage() {
         if (error) throw error;
       }
       
-      // Mostrar feedback y recargar
+      
       setShowSuccessToast(true);
       setTimeout(() => setShowSuccessToast(false), 3000);
       fetchEvidences(selectedVisitId);
@@ -269,7 +270,7 @@ export default function EvidenciasPage() {
     }
   };
 
-  // --- Eliminar evidencia ---
+  
   const handleDeleteEvidence = async (id: number) => {
     if (!confirm("¿Estás seguro de que deseas eliminar esta evidencia fotográfica?")) return;
     try {
@@ -286,7 +287,7 @@ export default function EvidenciasPage() {
 
   const selectedVisitDetails = visits.find(v => v.id.toString() === selectedVisitId);
 
-  // --- Loading screen ---
+  
   if (loading || !user) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -298,7 +299,7 @@ export default function EvidenciasPage() {
 
   return (
     <div className="space-y-8 font-inter">
-      {/* Header Info */}
+      {}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <span className="text-[10px] uppercase font-bold text-sivac-blue bg-sivac-blue/15 px-2 py-0.5 rounded border border-sivac-blue/30 inline-flex items-center gap-1 mb-2">
@@ -313,7 +314,7 @@ export default function EvidenciasPage() {
         </div>
       </div>
 
-      {/* Alerta de Modo de Consulta */}
+      {}
       {esSoloConsulta && (
         <div className="p-4 rounded-lg bg-sivac-blue/10 border border-sivac-blue/30 text-sivac-indigo-light flex gap-3 items-center">
           <ShieldAlert size={18} className="text-sivac-blue-light flex-shrink-0" />
@@ -323,7 +324,7 @@ export default function EvidenciasPage() {
         </div>
       )}
 
-      {/* Selector de Visitas */}
+      {}
       <div className="admin-card p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -356,7 +357,7 @@ export default function EvidenciasPage() {
           </div>
         </div>
 
-        {/* Ficha rápida de la visita seleccionada */}
+        {}
         {selectedVisitDetails && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-sivac-bg-secondary/20 border border-sivac-border-glass text-12">
             <div>
@@ -379,7 +380,7 @@ export default function EvidenciasPage() {
         )}
       </div>
 
-      {/* Zona de Carga de archivos (Oculta para administradores) */}
+      {}
       {!esSoloConsulta && selectedVisitId && (
         <div className="admin-card p-6 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -388,7 +389,7 @@ export default function EvidenciasPage() {
               <p className="text-12 text-sivac-muted mt-0.5">Asigna la foto a una sección de evaluación específica.</p>
             </div>
             
-            {/* Selector de sección de la foto */}
+            {}
             <div className="flex items-center gap-2">
               <span className="text-12 font-medium text-sivac-muted">Sección:</span>
               <select
@@ -404,7 +405,7 @@ export default function EvidenciasPage() {
             </div>
           </div>
 
-          {/* Area Drag & Drop */}
+          {}
           <div
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
@@ -450,7 +451,7 @@ export default function EvidenciasPage() {
         </div>
       )}
 
-      {/* Toast de Éxito de Subida */}
+      {}
       {showSuccessToast && (
         <div className="fixed bottom-6 right-6 p-4 rounded-xl bg-sivac-green/15 border border-sivac-green/30 text-sivac-green-light flex items-center gap-2.5 shadow-xl animate-fadeIn z-50">
           <CheckCircle2 size={18} />
@@ -458,7 +459,7 @@ export default function EvidenciasPage() {
         </div>
       )}
 
-      {/* Galería de Evidencias */}
+      {}
       <div className="space-y-4">
         <h2 className="text-18 font-bold text-sivac-light">
           Evidencias Registradas en esta Visita
@@ -484,7 +485,7 @@ export default function EvidenciasPage() {
                 key={card.id}
                 className="admin-card overflow-hidden flex flex-col sm:flex-row group hover:border-sivac-blue/30 transition-all"
               >
-                {/* Image Preview / Container */}
+                {}
                 <div className="w-full sm:w-[180px] h-[160px] sm:h-auto bg-sivac-bg-input-admin border-b sm:border-b-0 sm:border-r border-sivac-border-card relative overflow-hidden flex items-center justify-center group-hover:bg-sivac-bg-secondary/10 transition-colors">
                   {card.url_foto ? (
                     <img 
@@ -498,11 +499,11 @@ export default function EvidenciasPage() {
                       <span className="text-11 font-medium tracking-wide uppercase">{card.size}</span>
                     </div>
                   )}
-                  {/* Decorative indicator line */}
+                  {}
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-sivac-blue" />
                 </div>
 
-                {/* Card Meta Content */}
+                {}
                 <div className="flex-1 p-6 flex flex-col justify-between space-y-4">
                   <div className="space-y-1">
                     <span className="text-11 font-bold text-sivac-indigo bg-sivac-blue/10 px-2 py-0.5 rounded border border-sivac-blue/20">
@@ -523,7 +524,7 @@ export default function EvidenciasPage() {
                     </div>
                   </div>
 
-                  {/* Actions */}
+                  {}
                   <div className="flex gap-2 pt-2 border-t border-sivac-border/25">
                     <a
                       href={card.url_foto}
@@ -534,7 +535,7 @@ export default function EvidenciasPage() {
                       Ver Evidencia
                     </a>
 
-                    {/* Ocultar botón eliminar para Admin */}
+                    {}
                     {!esSoloConsulta && (
                       <button
                         type="button"
@@ -553,5 +554,13 @@ export default function EvidenciasPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function EvidenciasPage() {
+  return (
+    <Suspense fallback={null}>
+      <EvidenciasContent />
+    </Suspense>
   );
 }

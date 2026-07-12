@@ -13,7 +13,7 @@ export interface FormatoVisitaUTPProps {
   horaPracticaTeoria?: string;
   lugarVisita?: string;
 
-  // Sección 1: Control Docente
+  
   docenteNombre?: string;
   docentePresente?: "SI" | "NO" | "";
   horarioProgramado?: "Cumple" | "No Cumple" | "";
@@ -21,30 +21,30 @@ export interface FormatoVisitaUTPProps {
   actividad?: string;
   obs1?: string;
 
-  // Sección 2: Material Aula Virtual
+  
   materialCargado?: "CUMPLE" | "NO CUMPLE" | "";
   obs2?: string;
 
-  // Sección 3: Asistencia
+  
   asistenciaAmbiente?: "Cumple" | "No cumple" | "";
   asistenciaAmbienteObs?: string;
   asistenciaIntranet?: "Cumple" | "No cumple" | "";
   asistenciaIntranetObs?: string;
   obs3?: string;
 
-  // Sección 4: Avance Silábico
+  
   silaboCoincide?: "CUMPLE" | "NO CUMPLE" | "";
   temaAnteriorCoincide?: "CUMPLE" | "NO CUMPLE" | "";
   ingresoSilaboVirtual?: "CUMPLE" | "NO CUMPLE" | "";
   obs4?: string;
 
-  // Sección 5: Guía de Práctica
+  
   guiaPractica?: "CUMPLE" | "NO CUMPLE" | "NO APLICA" | "";
   logroMedir?: "CUMPLE" | "NO CUMPLE" | "NO APLICA" | "";
   rubricaEvaluacion?: "CUMPLE" | "NO CUMPLE" | "NO APLICA" | "";
   obs5?: string;
 
-  // Pie del reporte
+  
   responsableActividad?: string;
   requerimientosSolicitados?: string;
   firmaDocenteUrl?: string;
@@ -97,9 +97,9 @@ export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
     <>
       <div className="print-sheet w-full max-w-[210mm] bg-white text-black mx-auto font-sans flex flex-col justify-between border border-gray-300 shadow-sm print:border-0 print:shadow-none select-none text-[8px] leading-snug">
       <div>
-        {/* ==================== ENCABEZADO ==================== */}
+        {}
         <div className="grid grid-cols-[30%_40%_30%] items-center border-b border-black pb-1 mb-2">
-          {/* Logo UTP */}
+          {}
           <div className="flex items-center gap-2">
             <div className="flex items-center justify-center bg-[#C8102E] text-white font-bold px-2 py-0.5 text-[16px] font-sans tracking-tighter">
               UTP
@@ -111,7 +111,7 @@ export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
             </div>
           </div>
 
-          {/* Información del Centro */}
+          {}
           <div className="text-center flex flex-col items-center">
             <div className="font-bold text-[9.5px] tracking-wide text-black uppercase">
               UNIVERSIDAD TECNOLÓGICA DEL PERÚ
@@ -127,18 +127,18 @@ export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
             </div>
           </div>
 
-          {/* Espacio derecho vacío para equilibrio visual */}
+          {}
           <div className="w-full" />
         </div>
 
-        {/* Título de la Visita */}
+        {}
         <div className="text-center mb-2">
           <h2 className="text-[10.5px] font-bold underline uppercase tracking-wider text-black">
             VISITA INOPINADA - CLASES PRESENCIALES
           </h2>
         </div>
 
-        {/* ==================== TABLA 1: DATOS GENERALES ==================== */}
+        {}
         <table className="w-full border-collapse border-[1.2px] border-black text-[8px] mb-2">
           <tbody>
             <tr>
@@ -174,7 +174,7 @@ export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
           </tbody>
         </table>
 
-        {/* ==================== SECCIÓN 1: CONTROL DOCENTE ==================== */}
+        {}
         <div className="w-full mb-2">
           <div className="font-bold bg-gray-100 border-[1.2px] border-black border-b-0 px-2 py-0.5 uppercase text-[8px]">
             1. CONTROL DOCENTE (ASISTENCIA, HORARIO, COMPORTAMIENTO)
@@ -242,7 +242,7 @@ export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
           </table>
         </div>
 
-        {/* ==================== SECCIÓN 2: AULA VIRTUAL ==================== */}
+        {}
         <div className="w-full mb-2">
           <div className="font-bold bg-gray-100 border-[1.2px] border-black border-b-0 px-2 py-0.5 uppercase text-[8px]">
             2. REGISTRO DE MATERIAL A UTILIZAR CARGADO EN AULA VIRTUAL ANTES DEL INICIO DE CLASES
@@ -267,7 +267,7 @@ export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
           </table>
         </div>
 
-        {/* ==================== SECCIÓN 3: REGISTRO DE ASISTENCIA ==================== */}
+        {}
         <div className="w-full mb-2">
           <div className="font-bold bg-gray-100 border-[1.2px] border-black border-b-0 px-2 py-0.5 uppercase text-[8px]">
             3. CONTROL DE REGISTRO DE ASISTENCIA DE ESTUDIANTES
@@ -326,7 +326,7 @@ export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
           </table>
         </div>
 
-        {/* ==================== SECCIÓN 4: AVANCE SILÁBICO ==================== */}
+        {}
         <div className="w-full mb-2">
           <div className="font-bold bg-gray-100 border-[1.2px] border-black border-b-0 px-2 py-0.5 uppercase text-[8px]">
             4. CONTROL DEL AVANCE SILÁBICO
@@ -365,7 +365,7 @@ export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
           </table>
         </div>
 
-        {/* ==================== SECCIÓN 5: GUÍA DE PRÁCTICA ==================== */}
+        {}
         <div className="w-full mb-2">
           <div className="font-bold bg-gray-100 border-[1.2px] border-black border-b-0 px-2 py-0.5 uppercase text-[8px]">
             5. CUMPLE CON EL DESARROLLO DE LA GUÍA DE PRÁCTICA
@@ -408,7 +408,7 @@ export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
           </table>
         </div>
 
-        {/* ==================== RESPONSABLE Y REQUERIMIENTOS ==================== */}
+        {}
         <table className="w-full border-collapse border-[1.2px] border-black text-[8px]">
           <tbody>
             <tr>
@@ -429,7 +429,7 @@ export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
         </table>
       </div>
 
-      {/* ==================== FIRMAS DE CONFORMIDAD ==================== */}
+      {}
       <div className="mt-2 border-t border-gray-300 pt-2 no-break">
         <div className="grid grid-cols-2 gap-12 text-center">
           <div className="flex flex-col items-center relative min-h-[40px] justify-end">
@@ -460,7 +460,7 @@ export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
       </div>
     </div>
 
-    {/* ==================== EVIDENCIAS FOTOGRÁFICAS (EN OTRA HOJA) ==================== */}
+    {}
     {evidenciasFotos && evidenciasFotos.length > 0 && (
       <div className="print-sheet w-full max-w-[210mm] bg-white text-black mx-auto font-sans flex flex-col justify-start border border-gray-300 shadow-sm print:border-0 print:shadow-none select-none text-[8px] leading-snug mt-4">
         <div className="text-center mb-4">

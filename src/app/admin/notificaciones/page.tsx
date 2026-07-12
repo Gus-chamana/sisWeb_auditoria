@@ -28,26 +28,26 @@ export default function NotificacionesPage() {
   const [loading, setLoading] = useState(true);
   const [visits, setVisits] = useState<VisitData[]>([]);
 
-  const getEffectiveEstadoId = (v: VisitData) => {
+  const getEffectiveEstadoId = (v: any) => {
     const hasEvidence = v.evidencias_fotos && v.evidencias_fotos.length > 0;
     const hasTeacherSignature = v.firma_docente_b64 && v.firma_docente_b64.trim() !== "";
     const step = v.ultimo_paso_completado || 1;
 
     if (step < 7) {
-      return 2; // En progreso
+      return 2; 
     } else {
       if (!hasTeacherSignature) {
-        return 1; // Pendiente
+        return 1; 
       } else {
-        return hasEvidence ? 3 : 4; // Completada u Observada
+        return hasEvidence ? 3 : 4; 
       }
     }
   };
 
-  const getLastActivityTime = (v: VisitData) => {
+  const getLastActivityTime = (v: any) => {
     let lastTime = new Date(v.created_at).getTime();
     if (v.evidencias_fotos && v.evidencias_fotos.length > 0) {
-      v.evidencias_fotos.forEach(photo => {
+      v.evidencias_fotos.forEach((photo: any) => {
         if (photo.fecha_captura) {
           const photoTime = new Date(photo.fecha_captura).getTime();
           if (photoTime > lastTime) {
@@ -109,10 +109,10 @@ export default function NotificacionesPage() {
           `)
           .is("deleted_at", null);
 
-        if (user.rol === "Auditor") {
-          query = query.eq("auditor_id", parseInt(user.id, 10));
-        } else if (user.rol === "Docente") {
-          query = query.eq("docente_id", parseInt(user.id, 10));
+        if (user?.rol === "Auditor") {
+          query = query.eq("auditor_id", parseInt(user?.id || "0", 10));
+        } else if (user?.rol === "Docente") {
+          query = query.eq("docente_id", parseInt(user?.id || "0", 10));
         }
 
         const { data: visitsData, error: visitsError } = await query.order("id", { ascending: false });
@@ -120,13 +120,13 @@ export default function NotificacionesPage() {
         if (visitsError) {
           console.error("Error fetching visits for notifications:", visitsError);
         } else if (visitsData) {
-          // Sort by last activity time
+          
           const sorted = [...visitsData].sort((a: any, b: any) => {
             return getLastActivityTime(b) - getLastActivityTime(a);
           });
           setVisits(sorted as any);
 
-          // Save current activity times as read in localStorage
+          
           try {
             const readMap: Record<number, number> = {};
             sorted.forEach((v) => {
@@ -159,7 +159,7 @@ export default function NotificacionesPage() {
     );
   }
 
-  // Map visits to UI events
+  
   const events = visits.map((v) => {
     const effId = getEffectiveEstadoId(v);
     const time = formatTimeAgo(new Date(getLastActivityTime(v)).toISOString());
@@ -204,7 +204,7 @@ export default function NotificacionesPage() {
   return (
     <AccessGuard allowedRoles={["Admin", "Auditor", "Docente"]}>
       <div className="max-w-4xl mx-auto space-y-6 font-inter">
-        {/* Header Info */}
+        {}
         <div>
           <h1 className="text-28 font-bold font-poppins text-sivac-light">
             Notificaciones
@@ -214,28 +214,28 @@ export default function NotificacionesPage() {
           </p>
         </div>
 
-        {/* Main Events List Panel */}
+        {}
         <div className="admin-card overflow-hidden">
-          {/* Panel Header */}
+          {}
           <div className="px-6 py-4 bg-sivac-bg-input-admin border-b border-sivac-border-card">
             <span className="text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">
               HISTORIAL DE EVENTOS REALES
             </span>
           </div>
 
-          {/* Panel Content (List) */}
+          {}
           <div className="divide-y divide-sivac-border-card bg-sivac-bg-surface">
             {events.slice(0, 7).map((event) => (
               <div
                 key={event.id}
                 className="p-6 flex items-start gap-4 hover:bg-white/[0.02] transition-colors group"
               >
-                {/* Event Icon / Dot Container */}
+                {}
                 <div className={`mt-0.5 p-2 rounded-lg border flex items-center justify-center ${event.dotColor}`}>
                   {event.icon}
                 </div>
 
-                {/* Event Description */}
+                {}
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                     <h4 className="text-15 font-bold text-sivac-light group-hover:opacity-80 transition-colors">

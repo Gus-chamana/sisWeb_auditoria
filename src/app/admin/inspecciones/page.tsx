@@ -22,7 +22,7 @@ const getLocalTimeString = (): string => {
 
 const parseAsistenciaObs = (rawObs: string) => {
   if (!rawObs) return { alumnosAmbiente: "" as number | "", alumnosIntranet: "" as number | "", observaciones: "" };
-  const match = rawObs.match(/^\[alumnos_ambiente:(\d*),alumnos_intranet:(\d*)\](.*)$/s);
+  const match = rawObs.match(/^\[alumnos_ambiente:(\d*),alumnos_intranet:(\d*)\]([\s\S]*)$/);
   if (match) {
     return {
       alumnosAmbiente: match[1] === "" ? "" : parseInt(match[1], 10),
@@ -46,9 +46,9 @@ export default function InspeccionesPage() {
   const [showEvidenceSuccessModal, setShowEvidenceSuccessModal] = useState(false);
   const [uploadSection, setUploadSection] = useState<string>("Inicio de Clases");
 
-  // Estado global para todo el formulario de auditoría de 7 pasos
+  
   const [formData, setFormData] = useState({
-    // Paso 1: Datos Generales
+    
     sedeFilial: "",
     ciclo: "",
     turno: "",
@@ -58,35 +58,35 @@ export default function InspeccionesPage() {
     modalidad: "",
     docenteNombre: "",
 
-    // Paso 2: Control Docente
+    
     docentePresente: "" as "Presente" | "Ausente" | "",
     horarioProgramado: "" as "Puntual" | "Impuntual" | "",
     interaccion: "" as "Interactúa" | "No Interactúa" | "",
     observacionesAusencia: "",
     actividadDocente: "",
 
-    // Paso 3: Material Utilizado
+    
     materialCargado: "" as "CUMPLE" | "NO CUMPLE" | "",
     observacionesMaterial: "",
 
-    // Paso 4: Asistencia
+    
     alumnosAmbiente: "" as number | "",
     alumnosIntranet: "" as number | "",
     observacionesAsistencia: "",
 
-    // Paso 5: Avance Silábico
+    
     silaboCoincide: "" as "CUMPLE" | "NO CUMPLE" | "",
     temaAnteriorCoincide: "" as "CUMPLE" | "NO CUMPLE" | "",
     ingresoSilaboVirtual: "" as "CUMPLE" | "NO CUMPLE" | "",
     observacionesSilabo: "",
 
-    // Paso 6: Guía Práctica
+    
     guiaPractica: "" as "CUMPLE" | "NO CUMPLE" | "NO APLICA" | "",
     logroMedir: "" as "CUMPLE" | "NO CUMPLE" | "NO APLICA" | "",
     rubricaEvaluacion: "" as "CUMPLE" | "NO CUMPLE" | "NO APLICA" | "",
     observacionesGuia: "",
 
-    // Paso 7: Firmas
+    
     firmaDocenteUrl: ""
   });
 
@@ -106,7 +106,7 @@ export default function InspeccionesPage() {
   const [asignaturas, setAsignaturas] = useState<{ id: number; nombre: string }[]>([]);
   const { user } = useAuth();
 
-  // Filtrar catálogos activos o ya seleccionados previamente en edición
+  
   const getFilteredSedes = () => {
     return sedes.filter(s => !s.nombre.endsWith(" (Inactivo)") || s.nombre === formData.sedeFilial);
   };
@@ -138,7 +138,7 @@ export default function InspeccionesPage() {
     });
   };
 
-  // Cargar catálogos y docentes registrados de Supabase al iniciar
+  
   React.useEffect(() => {
     async function loadData() {
       try {
@@ -161,7 +161,7 @@ export default function InspeccionesPage() {
         if (resAulas.data) setAulas(resAulas.data);
         if (resAsignaturas.data) setAsignaturas(resAsignaturas.data);
 
-        // --- Crear visita pendiente de inmediato si no hay idParam en la URL ---
+        
         const params = new URLSearchParams(window.location.search);
         const idParam = params.get("visitaId");
         if (!idParam) {
@@ -184,7 +184,7 @@ export default function InspeccionesPage() {
               auditor_id: auditorId,
               fecha_visita: new Date().toISOString().split("T")[0],
               hora_inicio_real: getLocalTimeString(),
-              estado_id: 2, // En progreso (No más Pendiente al iniciar)
+              estado_id: 2, 
               ultimo_paso_completado: 1,
               ciclo: params.get("ciclo") || "2026-I",
               turno: params.get("turno") || "Noche",
@@ -289,12 +289,12 @@ export default function InspeccionesPage() {
 
       const parsedAsistencia = parseAsistenciaObs(evalAsistencia?.observaciones || "");
       const isEncodedAsistencia = evalAsistencia?.observaciones?.startsWith("[alumnos_ambiente:") ?? false;
-      const finalAlumnosAmbiente = evalAsistencia
+      const finalAlumnosAmbiente = (evalAsistencia
         ? (parsedAsistencia.alumnosAmbiente !== "" ? parsedAsistencia.alumnosAmbiente : (isEncodedAsistencia ? "" : 25))
-        : "";
-      const finalAlumnosIntranet = evalAsistencia
+        : "") as number | "";
+      const finalAlumnosIntranet = (evalAsistencia
         ? (parsedAsistencia.alumnosIntranet !== "" ? parsedAsistencia.alumnosIntranet : (isEncodedAsistencia ? "" : 25))
-        : "";
+        : "") as number | "";
 
       setFormData({
         sedeFilial: (visita.sedes as any)?.nombre || "Sede Central - Lima",
@@ -412,7 +412,7 @@ export default function InspeccionesPage() {
           turno: formData.turno,
           semana_nro: parseInt(formData.semanaNo, 10) || 12,
           ultimo_paso_completado: 2,
-          estado_id: 2, // En progreso
+          estado_id: 2, 
         };
 
         if (currentVisitaId) {
@@ -545,7 +545,7 @@ export default function InspeccionesPage() {
       const { createClient } = await import("@/utils/supabase/client");
       const supabase = createClient();
 
-      // Recuperar la firma del auditor/usuario actual desde localStorage
+      
       let auditorFirma = "";
       if (typeof window !== "undefined" && user?.id) {
         auditorFirma = localStorage.getItem(`sivac_signature_user_${user.id}`) || "";
@@ -554,7 +554,7 @@ export default function InspeccionesPage() {
       const hasTeacherSignature = formData.firmaDocenteUrl && formData.firmaDocenteUrl.trim() !== "";
       const actualHasEvidences = overrideHasEvidences !== undefined ? overrideHasEvidences : hasEvidences;
 
-      let finalEstadoId = 2; // En progreso
+      let finalEstadoId = 2; 
       if (completed) {
         finalEstadoId = hasTeacherSignature ? (actualHasEvidences ? 3 : 4) : 1;
       }
@@ -640,7 +640,7 @@ export default function InspeccionesPage() {
         }
         break;
       case 7:
-        // La firma del docente es opcional para poder finalizar la visita (si falta, queda como Pendiente)
+        
         break;
     }
     setValidationError("");
@@ -653,7 +653,7 @@ export default function InspeccionesPage() {
     if (currentStep < 7) {
       setCurrentStep((prev) => prev + 1);
     } else {
-      // Guardar / Finalizar auditoría
+      
       const missingEvidence = !hasEvidences;
       const missingSignature = !formData.firmaDocenteUrl;
 
@@ -715,7 +715,7 @@ export default function InspeccionesPage() {
     }
   };
 
-  // Renderizar dinámicamente cada paso
+  
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
@@ -881,7 +881,7 @@ export default function InspeccionesPage() {
   return (
     <AccessGuard allowedRoles={["Admin", "Auditor"]}>
       <div className="max-w-4xl mx-auto space-y-8 font-inter relative pb-16">
-      {/* Header Info */}
+      {}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 border-b border-sivac-border-card pb-6">
         <div>
           <h1 className="text-28 font-bold font-poppins text-sivac-light">
@@ -892,20 +892,20 @@ export default function InspeccionesPage() {
           </p>
         </div>
 
-        {/* Sync Status Badge */}
+        {}
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1e3a8a33] border border-[#1e3a8a80] text-[#93c5fd] self-start sm:self-center">
           <span className="w-2 h-2 rounded-full bg-[#60a5fa] animate-pulse" />
           <span className="text-12 font-medium">Autoguardado activado</span>
         </div>
       </div>
 
-      {/* Progress Wizard Bar */}
+      {}
       <div className="space-y-3">
         <div className="flex justify-between items-center text-12 font-semibold text-sivac-muted">
           <span>Progreso de Auditoría</span>
           <span>Paso {currentStep} de 7 ({Math.round((currentStep / 7) * 100)}%)</span>
         </div>
-        {/* Progress Bar reactiva */}
+        {}
         <div className="grid grid-cols-7 gap-2">
           {Array.from({ length: 7 }, (_, i) => i + 1).map((step) => {
             const isCompleted = step < currentStep;
@@ -927,7 +927,7 @@ export default function InspeccionesPage() {
         </div>
       </div>
 
-      {/* Step Title & Subtitle */}
+      {}
       <div className="space-y-1">
         <h2 className="text-20 font-bold text-sivac-light font-poppins">
           {getStepTitle()}
@@ -937,12 +937,12 @@ export default function InspeccionesPage() {
         </p>
       </div>
 
-      {/* Form Content Area */}
+      {}
       <div className="space-y-6">
         {renderStepContent()}
       </div>
 
-      {/* Modal de Advertencia de Validación */}
+      {}
       {validationError && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn text-sivac-light">
           <div className="bg-sivac-bg-surface/90 border border-white/10 rounded-2xl p-6 max-w-sm w-full text-center space-y-6 shadow-2xl relative backdrop-blur-xl">
@@ -970,7 +970,7 @@ export default function InspeccionesPage() {
         </div>
       )}
 
-      {/* Footer Wizard Actions */}
+      {}
       <div className="flex items-center justify-between border-t border-sivac-border-card pt-6 mt-8">
         <button
           type="button"
@@ -1003,7 +1003,7 @@ export default function InspeccionesPage() {
         </button>
       </div>
 
-      {/* Modal de Finalización Exitoso */}
+      {}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
           <div className="bg-sivac-bg-surface border border-white/10 rounded-2xl p-8 max-w-md w-full text-center space-y-6 shadow-2xl">
@@ -1017,7 +1017,7 @@ export default function InspeccionesPage() {
               </p>
             </div>
 
-            {/* Banner de advertencia condicional */}
+            {}
             {finishedWithoutEvidence && (() => {
               const missingEvidence = !hasEvidences;
               const missingSignature = !formData.firmaDocenteUrl;
@@ -1061,7 +1061,7 @@ export default function InspeccionesPage() {
         </div>
       )}
 
-      {/* Modal de Confirmación de Evidencias y Firmas (Glassmorphism / Backdrop Blur) */}
+      {}
       {showConfirmModal && (() => {
         const missingEvidence = !hasEvidences;
         const missingSignature = !formData.firmaDocenteUrl;
@@ -1088,7 +1088,7 @@ export default function InspeccionesPage() {
           <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn text-sivac-light">
             <div className="bg-sivac-bg-surface/80 border border-white/10 rounded-2xl p-6 sm:p-8 max-w-md w-full space-y-6 shadow-2xl relative backdrop-blur-xl">
               
-              {/* Warning Icon and Message */}
+              {}
               <div className="text-center space-y-4">
                 <div className="w-14 h-14 rounded-full bg-sivac-yellow/15 text-sivac-yellow mx-auto flex items-center justify-center border border-sivac-yellow/30 shrink-0">
                   <Info size={28} className="text-sivac-yellow" />
@@ -1103,7 +1103,7 @@ export default function InspeccionesPage() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {}
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                 <button
                   type="button"
@@ -1133,12 +1133,12 @@ export default function InspeccionesPage() {
         );
       })()}
 
-      {/* Modal de Carga de Evidencias Fotográficas (Glassmorphism) */}
+      {}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn text-sivac-light">
           <div className="bg-sivac-bg-surface/80 border border-white/10 rounded-2xl p-6 sm:p-8 max-w-lg w-full space-y-6 shadow-2xl relative backdrop-blur-xl">
 
-            {/* Close button */}
+            {}
             <button
               type="button"
               onClick={() => setShowUploadModal(false)}
@@ -1147,7 +1147,7 @@ export default function InspeccionesPage() {
               <X size={16} />
             </button>
 
-            {/* Header */}
+            {}
             <div className="text-center space-y-2">
               <div className="w-14 h-14 rounded-full bg-sivac-blue/15 text-sivac-blue mx-auto flex items-center justify-center border border-sivac-blue/30 shrink-0">
                 <ImagePlus size={28} />
@@ -1160,7 +1160,7 @@ export default function InspeccionesPage() {
               </p>
             </div>
 
-            {/* Selector de sección de la foto */}
+            {}
             <div className="space-y-2">
               <label htmlFor="modal-evidence-section" className="text-12 font-bold text-sivac-muted uppercase tracking-wide-06">
                 Tipo / Sección de Evidencia
@@ -1178,7 +1178,7 @@ export default function InspeccionesPage() {
               </select>
             </div>
 
-            {/* Drag & Drop Zone */}
+            {}
             <div
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
@@ -1222,7 +1222,7 @@ export default function InspeccionesPage() {
               </div>
             </div>
 
-            {/* Uploaded Files Preview */}
+            {}
             {uploadedFiles.length > 0 && (
               <div className="space-y-2">
                 <p className="text-12 font-bold text-sivac-muted uppercase tracking-wide-06">
@@ -1252,7 +1252,7 @@ export default function InspeccionesPage() {
               </div>
             )}
 
-            {/* Action Buttons */}
+            {}
             <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
               <button
                 type="button"
@@ -1283,7 +1283,7 @@ export default function InspeccionesPage() {
                         });
                       }
                       
-                      // Finalizar la inspección con evidencias y la firma del auditor
+                      
                       await finalizeInspection(true, true);
                     } catch (err) {
                       console.error("Error al subir fotos:", err);
@@ -1309,7 +1309,7 @@ export default function InspeccionesPage() {
         </div>
       )}
 
-      {/* Modal de Éxito de Evidencias */}
+      {}
       {showEvidenceSuccessModal && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn text-sivac-light">
           <div className="bg-sivac-bg-surface/80 border border-white/10 rounded-2xl p-6 sm:p-8 max-w-sm w-full text-center space-y-6 shadow-2xl relative backdrop-blur-xl animate-scaleIn">

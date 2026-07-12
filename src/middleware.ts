@@ -27,7 +27,7 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // IMPORTANTE: No correr código entre createServerClient y getUser()
+  
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -36,14 +36,14 @@ export async function updateSession(request: NextRequest) {
   const isRecoverPage = request.nextUrl.pathname.startsWith("/recuperar");
   const isAdminPage = request.nextUrl.pathname.startsWith("/admin");
 
-  // Si no está autenticado e intenta acceder a /admin, redirigir a /login
+  
   if (isAdminPage && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  // Si está autenticado e intenta ir al login o recuperación, redirigir al dashboard
+  
   if ((isLoginPage || isRecoverPage) && user) {
     const url = request.nextUrl.clone();
     url.pathname = "/admin/visitas";
@@ -59,13 +59,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Coincide con todas las rutas excepto:
-     * - _next/static (archivos estáticos)
-     * - _next/image (archivos de optimización de imágenes)
-     * - favicon.ico (archivo favicon)
-     * - Imágenes y assets locales en carpeta public o de diseño
-     */
+    
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

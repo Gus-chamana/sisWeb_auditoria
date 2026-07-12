@@ -46,15 +46,15 @@ export default function AnalyticsPage() {
     loadData();
   }, [supabase]);
 
-  // --- Computations ---
+  
   const totalVisits = visits.length;
   const visitsCompleted = visits.filter(v => getEffectiveEstadoId(v) === 3).length;
   const visitsObservadas = visits.filter(v => getEffectiveEstadoId(v) === 4).length;
 
-  // CUMPLIMIENTO PROMEDIO
+  
   const complianceAverage = totalVisits > 0 ? Math.round((visitsCompleted / totalVisits) * 1000) / 10 : 0;
 
-  // Monthly performance calculations (we calculate for the last 4 months: Mar, Apr, May, Jun 2026)
+  
   const getMonthlyStats = () => {
     const months = [
       { key: "03", name: "Mar" },
@@ -83,7 +83,7 @@ export default function AnalyticsPage() {
 
   const monthlyStats = getMonthlyStats();
 
-  // Donut chart: Alertas por Sede
+  
   const pctAlertas = totalVisits > 0 ? Math.round((visitsObservadas / totalVisits) * 100) : 0;
   const pctOptimas = totalVisits > 0 ? 100 - pctAlertas : 0;
 
@@ -101,7 +101,7 @@ export default function AnalyticsPage() {
   return (
     <AccessGuard allowedRoles={["Admin", "Auditor"]}>
       <div className="space-y-8 font-inter">
-        {/* Header Info */}
+        {}
         <div>
           <h1 className="text-28 font-bold font-poppins text-sivac-light">
             Analytics
@@ -111,9 +111,9 @@ export default function AnalyticsPage() {
           </p>
         </div>
 
-        {/* 3 Stat Cards */}
+        {}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Stat Card 1: Cumplimiento Promedio */}
+          {}
           <div className="admin-card p-6 border-l-4 border-l-sivac-blue hover:border-sivac-blue/30 transition-all flex flex-col justify-between h-[140px]">
             <div className="flex justify-between items-start">
               <span className="text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">
@@ -133,7 +133,7 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          {/* Stat Card 2: Visitas Finalizadas */}
+          {}
           <div className="admin-card p-6 border-l-4 border-l-sivac-border-card hover:border-sivac-blue/30 transition-all flex flex-col justify-between h-[140px]">
             <div className="flex justify-between items-start">
               <span className="text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">
@@ -153,7 +153,7 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          {/* Stat Card 3: Auditorías Observadas */}
+          {}
           <div className="admin-card p-6 border-l-4 border-l-sivac-yellow hover:border-sivac-blue/30 transition-all flex flex-col justify-between h-[140px]">
             <div className="flex justify-between items-start">
               <span className="text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">
@@ -174,9 +174,9 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* Charts Row */}
+        {}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Desempeño Mensual (Bar Chart) */}
+          {}
           <div className="admin-card p-6">
             <div className="mb-6">
               <h3 className="text-16 font-bold text-sivac-heading">
@@ -187,10 +187,10 @@ export default function AnalyticsPage() {
               </p>
             </div>
 
-            {/* Bar Chart CSS */}
+            {}
             <div className="h-[240px] flex items-end justify-around border-b border-sivac-border-card px-4 pt-6">
               {monthlyStats.map((ms, i) => {
-                const barHeight = Math.max(ms.compliance, 5); // min size to show bar
+                const barHeight = Math.max(ms.compliance, 5); 
                 const isCurrent = ms.name === "Jun";
                 return (
                   <div key={i} className="flex flex-col items-center w-12 group">
@@ -209,7 +209,7 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          {/* Alertas por Sede (Donut Chart) */}
+          {}
           <div className="admin-card p-6 flex flex-col justify-between">
             <div>
               <h3 className="text-16 font-bold text-sivac-heading">
@@ -221,7 +221,7 @@ export default function AnalyticsPage() {
             </div>
 
             <div className="flex items-center justify-around my-auto gap-4">
-              {/* Donut SVG */}
+              {}
               <div className="relative w-32 h-32 flex items-center justify-center shrink-0">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                   <circle
@@ -234,7 +234,7 @@ export default function AnalyticsPage() {
                   />
                   {totalVisits > 0 ? (
                     <>
-                      {/* Alertas (Yellow/Red) */}
+                      {}
                       {pctAlertas > 0 && (
                         <circle
                           cx="18"
@@ -247,7 +247,7 @@ export default function AnalyticsPage() {
                           strokeDashoffset="0"
                         />
                       )}
-                      {/* Sin observaciones (Gray/Green) */}
+                      {}
                       {pctOptimas > 0 && (
                         <circle
                           cx="18"
@@ -272,14 +272,14 @@ export default function AnalyticsPage() {
                     />
                   )}
                 </svg>
-                {/* Center Info text */}
+                {}
                 <div className="absolute flex flex-col items-center justify-center text-center">
                   <span className="text-20 font-bold text-sivac-heading">{pctAlertas}%</span>
                   <span className="text-[9px] font-bold text-sivac-muted uppercase tracking-wider">Alertas</span>
                 </div>
               </div>
 
-              {/* Legends */}
+              {}
               <div className="space-y-3 text-[12px]">
                 <div className="flex items-center gap-3">
                   <span className="w-3.5 h-3.5 rounded bg-sivac-red shrink-0" />

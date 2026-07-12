@@ -24,12 +24,12 @@ export default function UsuariosPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Form states
+  
   const [newUsername, setNewUsername] = useState("");
   const [newNombres, setNewNombres] = useState("");
   const [newApellidos, setNewApellidos] = useState("");
   const [newCodigoUtp, setNewCodigoUtp] = useState("");
-  const [newRolId, setNewRolId] = useState("3"); // Default to Docente
+  const [newRolId, setNewRolId] = useState("3"); 
 
   async function fetchUsers() {
     try {
@@ -96,7 +96,7 @@ export default function UsuariosPage() {
     fetchUsers();
   }, []);
 
-  // Pre-llenar y validar la letra inicial del código UTP según el rol
+  
   useEffect(() => {
     if (isModalOpen) {
       const prefix = (newRolId === "1" || newRolId === "2") ? "A" : "D";
@@ -115,7 +115,7 @@ export default function UsuariosPage() {
     if (!clean.startsWith(prefix)) {
       clean = prefix + clean.replace(/^[ADad]?/, "");
     }
-    // Solo permitir hasta 8 números a continuación de la letra prefijo
+    
     const digitsOnly = clean.slice(1).replace(/[^0-9]/g, "").slice(0, 8);
     setNewCodigoUtp(prefix + digitsOnly);
   };
@@ -150,7 +150,7 @@ export default function UsuariosPage() {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Validar que se ingresen ambos apellidos (paterno y materno)
+      
       const cleanApellidos = newApellidos.trim();
       const apellidosWords = cleanApellidos ? cleanApellidos.split(/\s+/) : [];
       if (apellidosWords.length < 2) {
@@ -162,11 +162,11 @@ export default function UsuariosPage() {
       const digits = newCodigoUtp.slice(1);
       if (digits.length !== 8) {
         alert("El código UTP debe tener exactamente 8 números.");
-        setNewCodigoUtp(prefix); // Solo borramos el código
+        setNewCodigoUtp(prefix); 
         return;
       }
 
-      // Validar código UTP único en la base de datos
+      
       const { data: existingUser, error: checkError } = await supabase
         .from("usuarios")
         .select("id")
@@ -177,11 +177,11 @@ export default function UsuariosPage() {
         console.error("Error al validar código UTP:", checkError);
       } else if (existingUser && existingUser.length > 0) {
         alert("El código UTP ya está registrado por otro usuario.");
-        setNewCodigoUtp(prefix); // Solo borramos el código
+        setNewCodigoUtp(prefix); 
         return;
       }
 
-      // 1. Registrar credenciales en Supabase Auth (usando cliente sin persistencia para no desloguear al admin)
+      
       const { createClient: createSupabaseClient } = await import("@supabase/supabase-js");
       const tempSupabase = createSupabaseClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -205,7 +205,7 @@ export default function UsuariosPage() {
         return;
       }
 
-      // 2. Insertar perfil en la tabla de usuarios pública
+      
       const passwordToHash = "Sivac2025!";
       let passwordHash = "Sivac2025!";
       try {
@@ -226,7 +226,7 @@ export default function UsuariosPage() {
             apellidos: newApellidos,
             codigo_utp: newCodigoUtp.trim(),
             rol_id: parseInt(newRolId),
-            password_hash: passwordHash, // Guardar la clave encriptada/hasheada
+            password_hash: passwordHash, 
           }
         ]);
 
@@ -236,7 +236,7 @@ export default function UsuariosPage() {
       } else {
         await fetchUsers();
         setIsModalOpen(false);
-        // Clear fields
+        
         setNewUsername("");
         setNewNombres("");
         setNewApellidos("");
@@ -323,7 +323,7 @@ export default function UsuariosPage() {
     }
   };
 
-  // KPIs
+  
   const totalCount = users.length;
   const auditorsCount = users.filter((u) => u.role === "Auditor").length;
   const docentesCount = users.filter((u) => u.role === "Docente").length;
@@ -342,7 +342,7 @@ export default function UsuariosPage() {
   return (
     <AccessGuard allowedRoles={["Admin"]}>
       <div className="space-y-8 font-inter relative">
-        {/* Header Info */}
+        {}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-28 font-bold font-poppins text-sivac-light">
@@ -363,9 +363,9 @@ export default function UsuariosPage() {
           </button>
         </div>
 
-        {/* 3 Stat Boxes Row */}
+        {}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {/* Total */}
+          {}
           <div className="admin-card p-5 flex items-center justify-between">
             <div>
               <p className="text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">
@@ -380,7 +380,7 @@ export default function UsuariosPage() {
             </div>
           </div>
 
-          {/* Auditores */}
+          {}
           <div className="admin-card p-5 flex items-center justify-between">
             <div>
               <p className="text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">
@@ -395,7 +395,7 @@ export default function UsuariosPage() {
             </div>
           </div>
 
-          {/* Docentes */}
+          {}
           <div className="admin-card p-5 flex items-center justify-between">
             <div>
               <p className="text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">
@@ -411,7 +411,7 @@ export default function UsuariosPage() {
           </div>
         </div>
 
-        {/* Users Table */}
+        {}
         <div className="admin-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -440,7 +440,7 @@ export default function UsuariosPage() {
               <tbody className="divide-y divide-sivac-border-card">
                 {users.map((user) => (
                   <tr key={user.id} className="hover:bg-sivac-bg-secondary/20 transition-colors">
-                    {/* Name and avatar dot */}
+                    {}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-sivac-bg-secondary flex items-center justify-center relative border border-sivac-border-card text-sivac-indigo font-bold text-12">
@@ -478,7 +478,7 @@ export default function UsuariosPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <div className="flex items-center justify-center gap-3">
-                        {/* Delete/Reactivate */}
+                        {}
                         {user.surnames.endsWith(" (Inactivo)") ? (
                           <button
                             type="button"
@@ -507,11 +507,11 @@ export default function UsuariosPage() {
           </div>
         </div>
 
-        {/* Create User Modal */}
+        {}
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="w-full max-w-md bg-sivac-bg-surface border border-sivac-border rounded-xl shadow-2xl p-6 relative">
-              {/* Close Button */}
+              {}
               <button
                 type="button"
                 onClick={handleCloseModalWithCheck}

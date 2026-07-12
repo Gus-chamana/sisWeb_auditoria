@@ -25,15 +25,15 @@ import {
 } from "@/lib/auth";
 import { useAuth } from "@/lib/AuthContext";
 
-// -----------------------------------------------------------
-// Definición de rutas del menú y sus permisos por rol
-// -----------------------------------------------------------
+
+
+
 interface NavItem {
   name: string;
   href: string;
   badge?: string;
   icon: React.ReactNode;
-  /** Roles que pueden ver esta opción del menú */
+  
   roles: UserRole[];
 }
 
@@ -94,14 +94,14 @@ export function Sidebar() {
   const [showNoSignatureModal, setShowNoSignatureModal] = useState(false);
   const { user, loading, signOut } = useAuth();
 
-  // Escuchar si la URL pide abrir el modal
+  
   useEffect(() => {
     if (searchParams.get("newInspection") === "true") {
       if (user?.id) {
         const savedSig = localStorage.getItem(`sivac_signature_user_${user.id}`);
         if (!savedSig) {
           setShowNoSignatureModal(true);
-          // Limpiar parámetro
+          
           const params = new URLSearchParams(window.location.search);
           params.delete("newInspection");
           const queryStr = params.toString();
@@ -126,7 +126,7 @@ export function Sidebar() {
 
   const handleCloseModal = () => {
     setShowModal(false);
-    // Limpiar el parámetro de la URL
+    
     const params = new URLSearchParams(window.location.search);
     params.delete("newInspection");
     const queryStr = params.toString();
@@ -136,13 +136,13 @@ export function Sidebar() {
   const handleAcceptModal = () => {
     setShowModal(false);
     
-    // Limpiar el parámetro de la URL en la página actual
+    
     const params = new URLSearchParams(window.location.search);
     params.delete("newInspection");
     const queryStr = params.toString();
     router.replace(pathname + (queryStr ? `?${queryStr}` : ""));
     
-    // Redirigir a la pantalla de inspecciones
+    
     router.push("/admin/inspecciones");
   };
 
@@ -197,7 +197,7 @@ export function Sidebar() {
     },
   ];
 
-  // Filtrar menú según el rol activo
+  
   if (loading) {
     return (
       <aside className="w-280 bg-sivac-bg-surface border-r border-sivac-border flex flex-col justify-between h-screen fixed left-0 top-0 z-30 font-inter animate-pulse">
@@ -220,7 +220,7 @@ export function Sidebar() {
     item.roles.includes(ROL_ACTIVO)
   );
 
-  // Etiqueta de sección según el rol
+  
   const sectionLabel =
     ROL_ACTIVO === "Admin"
       ? "GESTIÓN INSTITUCIONAL"
@@ -231,7 +231,7 @@ export function Sidebar() {
   return (
     <aside className="w-280 bg-sivac-bg-surface border-r border-sivac-border flex flex-col justify-between h-screen fixed left-0 top-0 z-30 font-inter">
       <div className="flex flex-col flex-1 overflow-y-auto">
-        {/* Logo and Brand */}
+        {}
         <div className="p-6 border-b border-sivac-border">
           <div className="flex items-center gap-3">
             <div className="relative w-[50px] h-[50px] rounded-lg overflow-hidden bg-sivac-blue/5 border border-sivac-blue/10 flex items-center justify-center">
@@ -254,14 +254,14 @@ export function Sidebar() {
           </div>
         </div>
 
-        {/* Section Label — cambia según el rol */}
+        {}
         <div className="px-6 py-4">
           <p className="text-12 font-semibold text-sivac-muted tracking-wide-06 uppercase">
             {sectionLabel}
           </p>
         </div>
 
-        {/* Navigation Items — filtrados por rol */}
+        {}
         <nav className="flex-1 px-4 space-y-1">
           {filteredNavItems.map((item) => {
             const isActive = pathname === item.href;
@@ -295,7 +295,7 @@ export function Sidebar() {
           })}
         </nav>
 
-        {/* Action Button — Visible para Auditor y Admin */}
+        {}
         {(ROL_ACTIVO === "Auditor" || ROL_ACTIVO === "Admin") && (
           <div className="p-4 border-t border-sivac-border">
             <button
@@ -310,7 +310,7 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* User Profile — Datos dinámicos según el rol */}
+      {}
       <div className="p-4 border-t border-sivac-border bg-sivac-bg-secondary/40 flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-sivac-blue/10 border border-sivac-blue/20 flex items-center justify-center text-sivac-indigo font-poppins font-semibold text-16 shadow-inner">
           {currentUser.iniciales}
@@ -327,7 +327,7 @@ export function Sidebar() {
             {getRolLabel(currentUser.rol)}
           </span>
         </div>
-        {/* Logout Visual Link */}
+        {}
         <button
           type="button"
           onClick={signOut}
@@ -337,12 +337,12 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* Modal de instrucciones para Nueva Inspección */}
+      {}
       {showModal && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn text-sivac-light no-print">
           <div className="bg-sivac-bg-surface border border-white/10 rounded-2xl p-6 sm:p-8 max-w-lg w-full space-y-6 shadow-2xl relative">
             
-            {/* Icon and Header */}
+            {}
             <div className="flex items-center gap-4 border-b border-white/5 pb-4">
               <div className="w-12 h-12 rounded-xl bg-sivac-blue/15 text-sivac-blue flex items-center justify-center border border-sivac-blue/30 shrink-0">
                 <ClipboardCheck size={24} />
@@ -357,7 +357,7 @@ export function Sidebar() {
               </div>
             </div>
 
-            {/* Warning/Info Box */}
+            {}
             <div className="p-4 rounded-xl bg-sivac-yellow/10 border border-sivac-yellow/30 text-sivac-yellow-soft space-y-2">
               <div className="flex gap-2.5 items-start">
                 <Info size={16} className="mt-0.5 shrink-0" />
@@ -367,7 +367,7 @@ export function Sidebar() {
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {}
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="button"
@@ -388,7 +388,7 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* Modal de Advertencia de Firma Requerida */}
+      {}
       {showNoSignatureModal && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn text-sivac-light no-print">
           <div className="bg-sivac-bg-surface border border-white/10 rounded-2xl p-6 sm:p-8 max-w-sm w-full text-center space-y-6 shadow-2xl relative">

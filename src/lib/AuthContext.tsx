@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: session.user.email || "",
         });
       } else {
-        // Fallback perfil temporal si no está en la tabla usuarios de la BD pública
+        
         setUser({
           id: "TEMP",
           nombre: session.user.email?.split("@")[0] || "Usuario",

@@ -49,12 +49,12 @@ export default function DashboardPage() {
     const step = v.ultimo_paso_completado || 1;
 
     if (step < 7) {
-      return 2; // En progreso
+      return 2; 
     } else {
       if (!hasTeacherSignature) {
-        return 1; // Pendiente
+        return 1; 
       } else {
-        return hasEvidence ? 3 : 4; // Completada u Observada
+        return hasEvidence ? 3 : 4; 
       }
     }
   };
@@ -83,7 +83,7 @@ export default function DashboardPage() {
           `)
           .is("deleted_at", null);
 
-        // Los auditores solo pueden ver estadísticas de sus propias visitas, y los docentes las asignadas a ellos
+        
         if (user?.rol === "Auditor") {
           query = query.eq("auditor_id", parseInt(user?.id || "0", 10));
         } else if (user?.rol === "Docente") {
@@ -94,7 +94,7 @@ export default function DashboardPage() {
 
         if (visitsError) console.error("Error fetching visits:", visitsError);
         else if (visitsData) {
-          // Sort dynamically by last activity time (creation date or latest photo upload)
+          
           const sorted = [...visitsData].sort((a: any, b: any) => {
             const getSecs = (x: any) => {
               let t = new Date(x.created_at).getTime();
@@ -113,7 +113,7 @@ export default function DashboardPage() {
           setVisits(sorted as any);
         }
 
-        // Fetch all sedes
+        
         const { data: sedesData, error: sedesError } = await supabase
           .from("sedes")
           .select("id, nombre")
@@ -131,7 +131,7 @@ export default function DashboardPage() {
     loadData();
   }, [supabase, user, authLoading]);
 
-  // --- Helpers & Computations ---
+  
   const getLastActivityTime = (v: VisitData) => {
     let lastTime = new Date(v.created_at).getTime();
     if (v.evidencias_fotos && v.evidencias_fotos.length > 0) {
@@ -154,14 +154,14 @@ export default function DashboardPage() {
 
   const todayStr = getLocalTodayDateString();
 
-  // KPIs
+  
   const visitsToday = visits.filter(v => v.fecha_visita === todayStr).length;
   const visitsPending = visits.filter(v => getEffectiveEstadoId(v) === 1 || getEffectiveEstadoId(v) === 2).length;
   const visitsCompleted = visits.filter(v => getEffectiveEstadoId(v) === 3).length;
-  const alertsActive = visits.filter(v => getEffectiveEstadoId(v) === 4).length; // Observadas
+  const alertsActive = visits.filter(v => getEffectiveEstadoId(v) === 4).length; 
   const totalVisits = visits.length;
 
-  // Donut chart percentages
+  
   const finalizadasCount = visitsCompleted;
   const enCursoCount = visits.filter(v => getEffectiveEstadoId(v) === 2).length;
   const pendientesCount = visits.filter(v => getEffectiveEstadoId(v) === 1).length;
@@ -172,7 +172,7 @@ export default function DashboardPage() {
   const pctPendientes = totalVisits > 0 ? (pendientesCount / totalVisits) * 100 : 0;
   const pctObservadas = totalVisits > 0 ? (observadasCount / totalVisits) * 100 : 0;
 
-  // Cumplimiento por Sede calculations
+  
   const sedeCompliance = sedes.map(sede => {
     const sedeVisits = visits.filter(v => v.sede_id === sede.id);
     const total = sedeVisits.length;
@@ -185,7 +185,7 @@ export default function DashboardPage() {
     };
   });
 
-  // Docentes con observaciones
+  
   const docenteObservationsMap: Record<string, number> = {};
   visits.forEach(v => {
     if (getEffectiveEstadoId(v) === 4 && v.docente) {
@@ -199,7 +199,7 @@ export default function DashboardPage() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 4);
 
-  // Time formatting helper
+  
   const formatTimeAgo = (dateStr: string) => {
     try {
       const date = new Date(dateStr);
@@ -267,7 +267,7 @@ export default function DashboardPage() {
   return (
     <AccessGuard allowedRoles={["Admin", "Auditor"]}>
       <div className="space-y-8 font-inter">
-        {/* Header Row */}
+        {}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-28 font-bold font-poppins text-sivac-heading tracking-tight">
@@ -279,7 +279,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Period Button */}
+            {}
             <button
               type="button"
               className="h-[40px] px-4 bg-sivac-bg-secondary border border-sivac-border rounded-lg text-14 font-medium text-sivac-body hover:text-sivac-heading hover:bg-sivac-bg-toggle transition-colors flex items-center gap-2"
@@ -290,9 +290,9 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* 4 KPI Cards */}
+        {}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Card 1: Visitas Hoy */}
+          {}
           <div className="admin-card p-6 flex flex-col justify-between h-[150px] relative overflow-hidden group hover:border-sivac-blue/30 transition-all">
             <div className="flex justify-between items-start">
               <span className="text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">
@@ -312,7 +312,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Card 2: Visitas Pendientes */}
+          {}
           <div className="admin-card p-6 flex flex-col justify-between h-[150px] relative overflow-hidden group hover:border-sivac-blue/30 transition-all">
             <div className="flex justify-between items-start">
               <span className="text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">
@@ -332,7 +332,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Card 3: Auditorías Finalizadas */}
+          {}
           <div className="admin-card p-6 flex flex-col justify-between h-[150px] relative overflow-hidden group hover:border-sivac-blue/30 transition-all">
             <div className="flex justify-between items-start">
               <span className="text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">
@@ -352,7 +352,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Card 4: Alertas Activas */}
+          {}
           <div className="admin-card p-6 flex flex-col justify-between h-[150px] relative overflow-hidden group hover:border-sivac-blue/30 transition-all">
             <div className="flex justify-between items-start">
               <span className="text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">
@@ -373,11 +373,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Main Charts & Activity Row */}
+        {}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left 2 Cols: Cumplimiento por Sede + Docentes Observados */}
+          {}
           <div className="lg:col-span-2 space-y-6">
-            {/* Cumplimiento por Sede (Bar Chart) */}
+            {}
             <div className="admin-card p-6">
               <div className="mb-6 flex justify-between items-center">
                 <div>
@@ -393,10 +393,10 @@ export default function DashboardPage() {
                 </span>
               </div>
 
-              {/* Vertical Bar Chart (CSS Puro) */}
+              {}
               <div className="h-[200px] flex items-end justify-around pt-4 px-4 border-b border-sivac-border-card">
                 {sedeCompliance.map((sc, i) => {
-                  const barHeight = Math.max(sc.percentage, 5); // Minimum height to show bar
+                  const barHeight = Math.max(sc.percentage, 5); 
                   return (
                     <div key={i} className="flex flex-col items-center w-1/4 group">
                       <span className="text-12 font-semibold text-sivac-heading opacity-0 group-hover:opacity-100 transition-opacity mb-2">
@@ -416,7 +416,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Estado de Visitas (Donut Chart SVG) */}
+              {}
               <div className="admin-card p-6 flex flex-col justify-between">
                 <div>
                   <h3 className="text-16 font-bold text-sivac-heading">
@@ -428,7 +428,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="flex items-center justify-around gap-2">
-                  {/* SVG Donut */}
+                  {}
                   <div className="relative w-28 h-28 flex items-center justify-center shrink-0">
                     <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                       <circle
@@ -441,7 +441,7 @@ export default function DashboardPage() {
                       />
                       {totalVisits > 0 ? (
                         <>
-                          {/* Circle 1 (Finalizadas, green): strokeDasharray="pct 100", offset="0" */}
+                          {}
                           {pctFinalizadas > 0 && (
                             <circle
                               cx="18"
@@ -454,7 +454,7 @@ export default function DashboardPage() {
                               strokeDashoffset="0"
                             />
                           )}
-                          {/* Circle 2 (En Curso, blue) */}
+                          {}
                           {pctEnCurso > 0 && (
                             <circle
                               cx="18"
@@ -467,7 +467,7 @@ export default function DashboardPage() {
                               strokeDashoffset={`-${pctFinalizadas}`}
                             />
                           )}
-                          {/* Circle 3 (Pendientes, yellow) */}
+                          {}
                           {pctPendientes > 0 && (
                             <circle
                               cx="18"
@@ -480,7 +480,7 @@ export default function DashboardPage() {
                               strokeDashoffset={`-${pctFinalizadas + pctEnCurso}`}
                             />
                           )}
-                          {/* Circle 4 (Observadas, red) */}
+                          {}
                           {pctObservadas > 0 && (
                             <circle
                               cx="18"
@@ -511,7 +511,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Legends */}
+                  {}
                   <div className="space-y-1.5 text-[11px]">
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e] shrink-0" />
@@ -537,7 +537,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Docentes Observados (Horizontal Bar Chart) */}
+              {}
               <div className="admin-card p-6">
                 <h3 className="text-16 font-bold text-sivac-heading mb-1">
                   Docentes Observados
@@ -571,7 +571,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Right Col: Timeline Actividad Reciente */}
+          {}
           <div className="admin-card p-6 flex flex-col">
             <div className="mb-6">
               <h3 className="text-16 font-bold text-sivac-heading">
@@ -582,7 +582,7 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            {/* Timeline */}
+            {}
             <div className="flex-1 relative border-l border-sivac-border-card ml-2.5 space-y-[18px] pb-2">
               {visits.slice(0, 7).map((v, i) => {
                 const effId = getEffectiveEstadoId(v);

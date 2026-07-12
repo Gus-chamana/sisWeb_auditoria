@@ -14,7 +14,7 @@ export default function ConfigurableSettingsPage() {
   const [aulas, setAulas] = useState<{ id: number; nombre: string; sede_id: number | null }[]>([]);
   const [loadingSettings, setLoadingSettings] = useState(true);
 
-  // Estados para modal de Nueva Aula
+  
   const [isAulaModalOpen, setIsAulaModalOpen] = useState(false);
   const [newAulaSedeId, setNewAulaSedeId] = useState("");
   const [newAulaNombre, setNewAulaNombre] = useState("");
@@ -29,7 +29,7 @@ export default function ConfigurableSettingsPage() {
     setIsAulaModalOpen(false);
   };
 
-  // Estados para modal genérico (Sedes, Ciclos, Asignaturas, Turnos)
+  
   const [isGenericModalOpen, setIsGenericModalOpen] = useState(false);
   const [genericModalType, setGenericModalType] = useState<"sedes" | "ciclos" | "asignaturas" | "turnos">("sedes");
   const [genericModalLabel, setGenericModalLabel] = useState("");
@@ -54,7 +54,7 @@ export default function ConfigurableSettingsPage() {
 
   const isAdmin = user?.rol === "Admin";
 
-  // Cargar configuraciones reales de Supabase
+  
   const fetchSettings = async () => {
     try {
       const { createClient } = await import("@/utils/supabase/client");
@@ -219,7 +219,7 @@ export default function ConfigurableSettingsPage() {
     return found ? found.nombre : "Sin Sede";
   };
 
-  // Cargar firma guardada de localStorage al iniciar
+  
   useEffect(() => {
     if (user?.id) {
       const savedFirma = localStorage.getItem(`sivac_signature_user_${user.id}`);
@@ -229,7 +229,7 @@ export default function ConfigurableSettingsPage() {
     }
   }, [user]);
 
-  // Dibujar firma guardada en el canvas
+  
   useEffect(() => {
     const canvas = canvasRef.current;
     if (canvas) {
@@ -254,7 +254,7 @@ export default function ConfigurableSettingsPage() {
     }
   }, [firmaUrl, user, loadingSettings]);
 
-  // Escuchar enfoque de ventana/pestaña para asegurar el redibujado
+  
   useEffect(() => {
     const handleFocus = () => {
       if (user?.id) {
@@ -363,7 +363,7 @@ export default function ConfigurableSettingsPage() {
   return (
     <AccessGuard allowedRoles={["Admin", "Auditor"]}>
       <div className="space-y-8 font-inter">
-      {/* Header Info */}
+      {}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-28 font-bold font-poppins text-sivac-light">
@@ -398,10 +398,10 @@ export default function ConfigurableSettingsPage() {
         )}
       </div>
 
-      {/* Grid 2 Columnas */}
+      {}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        {/* Card: Mi Firma de Auditor */}
+        {}
         <div className="admin-card p-6 flex flex-col justify-between space-y-4 md:col-span-2">
           <div className="space-y-4">
             <div className="flex justify-between items-center border-b border-white/5 pb-3">
@@ -425,7 +425,7 @@ export default function ConfigurableSettingsPage() {
             </p>
 
             <div className="flex flex-col md:flex-row gap-6 items-center">
-              {/* Canvas area */}
+              {}
               <div className="relative bg-sivac-bg-input-admin border border-white/10 rounded-lg overflow-hidden h-[180px] w-full max-w-[400px] flex items-center justify-center cursor-crosshair group shadow-inner">
                 <canvas
                   ref={canvasRef}
@@ -447,7 +447,7 @@ export default function ConfigurableSettingsPage() {
                 )}
               </div>
 
-              {/* Status & Save Button */}
+              {}
               <div className="flex-1 space-y-4 w-full md:w-auto">
                 <div className="space-y-1">
                   <span className="block text-11 text-sivac-muted font-bold uppercase tracking-wider">Estado de Firma</span>
@@ -481,7 +481,7 @@ export default function ConfigurableSettingsPage() {
 
         {isAdmin && (
           <>
-            {/* Col 1, Card 1: Sedes */}
+            {}
             <div className="admin-card p-6 flex flex-col justify-between space-y-4">
               <div className="space-y-3">
                 <h3 className="text-16 font-bold text-sivac-light flex items-center gap-2">
@@ -535,7 +535,7 @@ export default function ConfigurableSettingsPage() {
               </button>
             </div>
 
-            {/* Col 2, Card 1: Ciclos */}
+            {}
             <div className="admin-card p-6 flex flex-col justify-between space-y-4">
               <div className="space-y-3">
                 <h3 className="text-16 font-bold text-sivac-light flex items-center gap-2">
@@ -589,7 +589,7 @@ export default function ConfigurableSettingsPage() {
               </button>
             </div>
 
-            {/* Col 1, Card 2: Asignaturas */}
+            {}
             <div className="admin-card p-6 flex flex-col justify-between space-y-4">
               <div className="space-y-3">
                 <h3 className="text-16 font-bold text-sivac-light flex items-center gap-2">
@@ -643,7 +643,7 @@ export default function ConfigurableSettingsPage() {
               </button>
             </div>
 
-            {/* Col 2, Card 2: Turnos */}
+            {}
             <div className="admin-card p-6 flex flex-col justify-between space-y-4">
               <div className="space-y-3">
                 <h3 className="text-16 font-bold text-sivac-light flex items-center gap-2">
@@ -697,7 +697,7 @@ export default function ConfigurableSettingsPage() {
               </button>
             </div>
 
-            {/* Col 1, Card 3: Aulas */}
+            {}
             <div className="admin-card p-6 flex flex-col justify-between space-y-4 md:col-span-2">
               <div className="space-y-3">
                 <h3 className="text-16 font-bold text-sivac-light flex items-center gap-2">
@@ -754,11 +754,11 @@ export default function ConfigurableSettingsPage() {
         )}
       </div>
 
-      {/* Modal para Crear Nueva Aula */}
+      {}
       {isAulaModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 text-sivac-light no-print">
           <div className="w-full max-w-md bg-sivac-bg-surface border border-sivac-border rounded-xl shadow-2xl p-6 relative animate-fadeIn">
-            {/* Close Button */}
+            {}
             <button
               type="button"
               onClick={handleCloseAulaModal}
@@ -826,11 +826,11 @@ export default function ConfigurableSettingsPage() {
         </div>
       )}
 
-      {/* Modal para Crear Item Genérico (Sedes, Ciclos, Asignaturas, Turnos) */}
+      {}
       {isGenericModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 text-sivac-light no-print">
           <div className="w-full max-w-md bg-sivac-bg-surface border border-sivac-border rounded-xl shadow-2xl p-6 relative animate-fadeIn">
-            {/* Close Button */}
+            {}
             <button
               type="button"
               onClick={handleCloseGenericModal}

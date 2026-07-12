@@ -16,7 +16,7 @@ interface Paso4AsistenciaProps {
 export function Paso4Asistencia({ formData, updateFormData, modalidad }: Paso4AsistenciaProps) {
   const { alumnosAmbiente, alumnosIntranet, observacionesAsistencia } = formData;
 
-  // Sincronizar automáticamente valores no aplicables cuando cambia la modalidad
+  
   React.useEffect(() => {
     if (modalidad === "Virtual" && alumnosAmbiente !== "") {
       updateFormData({ alumnosAmbiente: "" });
@@ -25,7 +25,7 @@ export function Paso4Asistencia({ formData, updateFormData, modalidad }: Paso4As
     }
   }, [modalidad, alumnosAmbiente, alumnosIntranet, updateFormData]);
 
-  // Comprobar diferencia solo si ambos campos tienen un valor numérico ingresado y es modalidad Híbrido (Dual)
+  
   const tieneDiferencia = 
     modalidad === "Híbrido" &&
     alumnosAmbiente !== "" && 
@@ -36,7 +36,7 @@ export function Paso4Asistencia({ formData, updateFormData, modalidad }: Paso4As
 
   return (
     <div className="space-y-6">
-      {/* Banner Informativo */}
+      {}
       <div className="p-4 rounded-lg bg-sivac-blue/10 border border-sivac-blue/30 text-sivac-indigo-light flex gap-3 items-start">
         <Info size={18} strokeWidth={2.5} className="flex-shrink-0 mt-0.5 text-sivac-blue-light" />
         <div className="text-13 leading-relaxed">
@@ -44,11 +44,11 @@ export function Paso4Asistencia({ formData, updateFormData, modalidad }: Paso4As
         </div>
       </div>
 
-      {/* Tarjeta Principal de Asistencia */}
+      {}
       <div className="glass-card p-6 sm:p-8 space-y-6 rounded-xl bg-white/5 border border-white/10">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           
-          {/* Input 1: Alumnos en Ambiente */}
+          {}
           <div className="space-y-2">
             <label className="block text-14 font-semibold text-sivac-light flex items-center gap-2">
               <Users size={16} className="text-sivac-blue-light" />
@@ -75,7 +75,7 @@ export function Paso4Asistencia({ formData, updateFormData, modalidad }: Paso4As
             />
           </div>
 
-          {/* Input 2: Alumnos en Intranet */}
+          {}
           <div className="space-y-2">
             <label className="block text-14 font-semibold text-sivac-light flex items-center gap-2">
               <BookOpen size={16} className="text-sivac-blue-light" />
@@ -104,7 +104,7 @@ export function Paso4Asistencia({ formData, updateFormData, modalidad }: Paso4As
 
         </div>
 
-        {/* Banner de alerta de diferencia (Regla de negocio) */}
+        {}
         {tieneDiferencia && (
           <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 flex gap-3 items-center animate-pulse">
             <AlertTriangle size={20} className="flex-shrink-0" />
@@ -114,7 +114,7 @@ export function Paso4Asistencia({ formData, updateFormData, modalidad }: Paso4As
           </div>
         )}
 
-        {/* Observaciones Generales de Asistencia */}
+        {}
         <div className="space-y-3">
           <label className="block text-14 font-semibold text-sivac-light">
             Observaciones de Asistencia (Opcional)

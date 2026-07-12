@@ -23,7 +23,7 @@ interface Visit {
   auditorId?: number | null;
 }
 
-// Número de registros por página
+
 const PAGE_SIZE = 10;
 
 export default function VisitasPage() {
@@ -31,35 +31,35 @@ export default function VisitasPage() {
   const { user, loading } = useAuth();
   const supabase = createClient();
 
-  // --- Estado ---
+  
   const [allVisits, setAllVisits] = React.useState<Visit[]>([]);
   const [loadingVisits, setLoadingVisits] = React.useState(true);
 
-  // Filtros controlados
+  
   const [searchTerm, setSearchTerm] = React.useState("");
   const [sedeFilter, setSedeFilter] = React.useState("all");
   const [estadoFilter, setEstadoFilter] = React.useState("all");
 
-  // Sedes dinámicas desde Supabase
+  
   const [sedes, setSedes] = React.useState<{ id: number; nombre: string }[]>([]);
 
-  // Paginación
+  
   const [currentPage, setCurrentPage] = React.useState(1);
 
-  // PDF Preview and Download states
+  
   const [selectedAudit, setSelectedAudit] = React.useState<any | null>(null);
   const [isPdfModalOpen, setIsPdfModalOpen] = React.useState(false);
   const [loadingPdfId, setLoadingPdfId] = React.useState<string | null>(null);
   const [downloadingPdfId, setDownloadingPdfId] = React.useState<string | null>(null);
   const [tempAuditToDownload, setTempAuditToDownload] = React.useState<any | null>(null);
 
-  // --- Cargar sedes dinámicas ---
+  
   const fetchSedes = React.useCallback(async () => {
     const { data } = await supabase.from("sedes").select("id, nombre").order("nombre");
     if (data) setSedes(data);
   }, [supabase]);
 
-  // PDF download effect
+  
   React.useEffect(() => {
     if (!tempAuditToDownload) return;
     
@@ -164,12 +164,12 @@ export default function VisitasPage() {
 
       let effectiveEstadoId = v.estado_id;
       if (step < 7) {
-        effectiveEstadoId = 2; // En progreso
+        effectiveEstadoId = 2; 
       } else {
         if (!hasTeacherSignature) {
-          effectiveEstadoId = 1; // Pendiente
+          effectiveEstadoId = 1; 
         } else {
-          effectiveEstadoId = hasEvidence ? 3 : 4; // Completada u Observada
+          effectiveEstadoId = hasEvidence ? 3 : 4; 
         }
       }
 
@@ -256,7 +256,7 @@ export default function VisitasPage() {
       horaPracticaTeoria: audit.horasPracticaTeoria,
       lugarVisita: audit.aula,
 
-      // Sección 1: Control Docente
+      
       docenteNombre: audit.docenteNombre,
       docentePresente: mapPresente(ec?.presente_id),
       horarioProgramado: mapHorario(ec?.horario_id),
@@ -264,30 +264,30 @@ export default function VisitasPage() {
       actividad: ec?.actividad_detalle || "",
       obs1: ec?.observaciones || "",
 
-      // Sección 2: Material Aula Virtual
+      
       materialCargado: mapCumple(ea?.material_cumple_id),
       obs2: ea?.obs_material || "",
 
-      // Sección 3: Asistencia
+      
       asistenciaAmbiente: mapAmbienteCumple(eas?.ambiente_cumple_id),
       asistenciaAmbienteObs: parsedAsistencia.alumnosAmbiente !== "" ? `${parsedAsistencia.alumnosAmbiente} alumnos` : "",
       asistenciaIntranet: mapAmbienteCumple(eas?.intranet_cumple_id),
       asistenciaIntranetObs: parsedAsistencia.alumnosIntranet !== "" ? `${parsedAsistencia.alumnosIntranet} alumnos` : "",
       obs3: parsedAsistencia.observaciones,
 
-      // Sección 4: Avance Silábico
+      
       silaboCoincide: mapCumple(ea?.silabo_coincide_actual_id),
       temaAnteriorCoincide: mapCumple(ea?.silabo_coincide_anterior_id),
       ingresoSilaboVirtual: mapCumple(ea?.silabo_virtual_id),
       obs4: ea?.obs_avance_silabico || "",
 
-      // Sección 5: Guía de Práctica
+      
       guiaPractica: mapCumpleTriple(eg?.cumple_tema_id),
       logroMedir: mapCumpleTriple(eg?.evidencia_logro_id),
       rubricaEvaluacion: mapCumpleTriple(eg?.cuenta_rubrica_id),
       obs5: eg?.observaciones || "",
 
-      // Pie del reporte
+      
       responsableActividad: audit.auditorNombre || "",
       requerimientosSolicitados: audit.requerimientosSolicitados,
       firmaDocenteUrl: audit.firmaDocenteUrl,
@@ -304,7 +304,7 @@ export default function VisitasPage() {
     };
   };
 
-  // --- Cargar visitas desde Supabase ---
+  
   const fetchVisitas = React.useCallback(async () => {
     if (!user) return;
     setLoadingVisits(true);
@@ -330,7 +330,7 @@ export default function VisitasPage() {
         `)
         .is("deleted_at", null);
 
-      // Los auditores solo pueden ver sus propias visitas creadas, y los docentes las asignadas
+      
       if (user.rol === "Auditor") {
         query = query.eq("auditor_id", parseInt(user.id, 10));
       } else if (user.rol === "Docente") {
@@ -351,15 +351,15 @@ export default function VisitasPage() {
           const hasTeacherSignature = item.firma_docente_b64 && item.firma_docente_b64.trim() !== "";
           const step = item.ultimo_paso_completado || 1;
 
-          // Determinar estado de forma dinámica
+          
           let effectiveEstadoId = item.estado_id;
           if (step < 7) {
-            effectiveEstadoId = 2; // En progreso
+            effectiveEstadoId = 2; 
           } else {
             if (!hasTeacherSignature) {
-              effectiveEstadoId = 1; // Pendiente
+              effectiveEstadoId = 1; 
             } else {
-              effectiveEstadoId = hasEvidence ? 3 : 4; // Completada u Observada
+              effectiveEstadoId = hasEvidence ? 3 : 4; 
             }
           }
 
@@ -402,7 +402,7 @@ export default function VisitasPage() {
     }
   }, [supabase, user]);
 
-  // --- Eliminación ---
+  
   const handleDeleteVisita = async (id: string) => {
     if (!confirm("¿Estás seguro de que deseas eliminar esta visita de auditoría?")) return;
     try {
@@ -421,7 +421,7 @@ export default function VisitasPage() {
     }
   };
 
-  // --- Efectos ---
+  
   React.useEffect(() => {
     if (user) {
       fetchVisitas();
@@ -429,21 +429,21 @@ export default function VisitasPage() {
     }
   }, [fetchVisitas, fetchSedes, user]);
 
-  // --- Filtrado reactivo en cliente ---
+  
   const filteredVisits = React.useMemo(() => {
     return allVisits.filter((visit) => {
-      // Filtro de búsqueda (docente, aula, semana)
+      
       const matchesSearch =
         searchTerm === "" ||
         visit.docente.toLowerCase().includes(searchTerm.toLowerCase()) ||
         visit.aula.toLowerCase().includes(searchTerm.toLowerCase()) ||
         `Semana ${visit.semana}`.toLowerCase().includes(searchTerm.toLowerCase());
 
-      // Filtro de sede (por nombre exacto)
+      
       const matchesSede =
         sedeFilter === "all" || visit.sede === sedeFilter;
 
-      // Filtro de estado (por estado_id)
+      
       const matchesEstado =
         estadoFilter === "all" ||
         (estadoFilter === "1" && visit.estadoId === 1) ||
@@ -455,11 +455,11 @@ export default function VisitasPage() {
     });
   }, [allVisits, searchTerm, sedeFilter, estadoFilter]);
 
-  // --- Paginación calculada ---
+  
   const totalVisits = filteredVisits.length;
   const totalPages = Math.max(1, Math.ceil(totalVisits / PAGE_SIZE));
 
-  // Resetear a página 1 cuando cambian los filtros
+  
   React.useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, sedeFilter, estadoFilter]);
@@ -475,13 +475,13 @@ export default function VisitasPage() {
 
   const ROL_ACTIVO = user.rol;
 
-  // Asegurar que currentPage no exceda totalPages
+  
   const safePage = Math.min(currentPage, totalPages);
   const startIndex = (safePage - 1) * PAGE_SIZE;
   const endIndex = startIndex + PAGE_SIZE;
   const paginatedVisits = filteredVisits.slice(startIndex, endIndex);
 
-  // Generar los números de página a mostrar
+  
   const getPageNumbers = () => {
     const pages: number[] = [];
     const maxVisible = 5;
@@ -519,7 +519,7 @@ export default function VisitasPage() {
 
   return (
     <div className="space-y-6 font-inter">
-      {/* Header with Page Title and Action Button */}
+      {}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-24 font-bold font-poppins text-sivac-light">
@@ -542,9 +542,9 @@ export default function VisitasPage() {
         )}
       </div>
 
-      {/* Search and Filters Bar — FILTROS CONTROLADOS Y DINÁMICOS */}
+      {}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-sivac-bg-secondary/40 p-4 rounded-lg border border-sivac-border-card">
-        {/* Search — Controlado */}
+        {}
         <div className="relative w-full sm:w-80">
           <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-sivac-muted">
             <Search size={16} strokeWidth={2} />
@@ -558,9 +558,9 @@ export default function VisitasPage() {
           />
         </div>
 
-        {/* Filter Dropdowns — Controlados y Dinámicos */}
+        {}
         <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-          {/* Filtro de Sede — Dinámico desde Supabase */}
+          {}
           <select
             value={sedeFilter}
             onChange={(e) => setSedeFilter(e.target.value)}
@@ -574,7 +574,7 @@ export default function VisitasPage() {
             ))}
           </select>
 
-          {/* Filtro de Estado — Valores reales de estado_id */}
+          {}
           <select
             value={estadoFilter}
             onChange={(e) => setEstadoFilter(e.target.value)}
@@ -589,7 +589,7 @@ export default function VisitasPage() {
         </div>
       </div>
 
-      {/* Visits Table */}
+      {}
       <div className="admin-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -685,7 +685,7 @@ export default function VisitasPage() {
                         )}
 
                         {visit.status === "gray" && ROL_ACTIVO !== "Docente" && user && Number(visit.auditorId) === Number(user.id) && (
-                          /* Pendiente */
+                          
                           <button
                             type="button"
                             className="p-1.5 text-sivac-muted hover:text-sivac-blue transition-colors rounded-lg hover:bg-sivac-bg-secondary/40 cursor-pointer"
@@ -697,7 +697,7 @@ export default function VisitasPage() {
                         )}
 
                         {visit.status === "yellow" && ROL_ACTIVO !== "Docente" && user && Number(visit.auditorId) === Number(user.id) && (
-                          /* En progreso */
+                          
                           <>
                             <button
                               type="button"
@@ -719,7 +719,7 @@ export default function VisitasPage() {
                         )}
 
                         {(visit.status === "green" || visit.status === "red") && (
-                          /* Completada u Observada */
+                          
                           <>
                             {ROL_ACTIVO !== "Docente" && (
                               <button
@@ -780,7 +780,7 @@ export default function VisitasPage() {
           </table>
         </div>
 
-        {/* Pagination bar — FUNCIONAL */}
+        {}
         <div className="px-6 py-4 flex items-center justify-between border-t border-sivac-border-card bg-sivac-bg-secondary/10">
           <p className="text-12 font-normal text-sivac-muted">
             Mostrando{" "}
@@ -791,7 +791,7 @@ export default function VisitasPage() {
           </p>
 
           <div className="flex items-center gap-1.5">
-            {/* Prev Button */}
+            {}
             <button
               type="button"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -803,7 +803,7 @@ export default function VisitasPage() {
               <ChevronLeft size={16} strokeWidth={2} />
             </button>
 
-            {/* Page Numbers */}
+            {}
             {getPageNumbers().map((pageNum) => (
               <button
                 key={pageNum}
@@ -819,7 +819,7 @@ export default function VisitasPage() {
               </button>
             ))}
 
-            {/* Next Button */}
+            {}
             <button
               type="button"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
@@ -834,7 +834,7 @@ export default function VisitasPage() {
         </div>
       </div>
 
-      {/* Elemento oculto para descarga directa de PDF */}
+      {}
       {tempAuditToDownload && (
         <div 
           style={{
@@ -861,12 +861,12 @@ export default function VisitasPage() {
         </div>
       )}
 
-      {/* Modal Visor de PDF (Glassmorphism / Backdrop Blur) */}
+      {}
       {isPdfModalOpen && selectedAudit && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn text-sivac-light">
           <div className="bg-sivac-bg-surface/95 border border-white/10 rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl relative backdrop-blur-xl">
             
-            {/* Modal Header */}
+            {}
             <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-sivac-green animate-pulse" />
@@ -888,7 +888,7 @@ export default function VisitasPage() {
               </div>
             </div>
 
-            {/* Modal Body - PDF content scrollable */}
+            {}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 bg-[#1e1e1e] scrollbar-thin">
               <div id="pdf-modal-content" className="mx-auto max-w-[800px] bg-[#1e1e1e]">
                 <FormatoVisitaUTP {...getReportData(selectedAudit)} />
@@ -901,7 +901,7 @@ export default function VisitasPage() {
   );
 }
 
-// --- Helpers para detalle de visitas ---
+
 const parseAsistenciaObs = (rawObs: string) => {
   if (!rawObs) return { alumnosAmbiente: "" as number | "", alumnosIntranet: "" as number | "", observaciones: "" };
   const match = rawObs.match(/^\[alumnos_ambiente:(\d*),alumnos_intranet:(\d*)\]([\s\S]*)$/);

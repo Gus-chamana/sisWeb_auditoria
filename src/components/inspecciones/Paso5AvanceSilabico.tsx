@@ -39,7 +39,7 @@ export function Paso5AvanceSilabico({ formData, updateFormData }: Paso5AvanceSil
 
   return (
     <div className="space-y-6">
-      {/* Banner Informativo */}
+      {}
       <div className="p-4 rounded-lg bg-sivac-blue/10 border border-sivac-blue/30 text-sivac-indigo-light flex gap-3 items-start">
         <Info size={18} strokeWidth={2.5} className="flex-shrink-0 mt-0.5 text-sivac-blue-light" />
         <div className="text-13 leading-relaxed">
@@ -47,10 +47,10 @@ export function Paso5AvanceSilabico({ formData, updateFormData }: Paso5AvanceSil
         </div>
       </div>
 
-      {/* Tarjeta Principal de Avance Silábico */}
+      {}
       <div className="glass-card p-6 sm:p-8 space-y-6 rounded-xl bg-white/5 border border-white/10">
         
-        {/* Lista de Criterios */}
+        {}
         <div className="space-y-6 divide-y divide-white/5">
           {items.map((item, idx) => (
             <div key={item.id} className={`pt-6 ${idx === 0 ? "pt-0" : ""} space-y-3`}>
@@ -63,7 +63,7 @@ export function Paso5AvanceSilabico({ formData, updateFormData }: Paso5AvanceSil
                   <p className="text-11 text-sivac-muted ml-6 max-w-xl">{item.description}</p>
                 </div>
 
-                {/* Controles de Cumple / No Cumple */}
+                {}
                 <div className="flex bg-sivac-bg-input-admin/60 border border-white/10 p-0.5 rounded-lg w-full md:w-[240px] shrink-0">
                   <button
                     type="button"
@@ -95,7 +95,7 @@ export function Paso5AvanceSilabico({ formData, updateFormData }: Paso5AvanceSil
           ))}
         </div>
 
-        {/* Observaciones de Avance Silábico */}
+        {}
         <div className="space-y-3 border-t border-white/5 pt-6">
           <label className="block text-14 font-semibold text-sivac-light">
             Observaciones Adicionales (Opcional)

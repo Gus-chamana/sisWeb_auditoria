@@ -39,7 +39,7 @@ export function Paso6GuiaPractica({ formData, updateFormData }: Paso6GuiaPractic
 
   return (
     <div className="space-y-6">
-      {/* Banner Informativo */}
+      {}
       <div className="p-4 rounded-lg bg-sivac-blue/10 border border-sivac-blue/30 text-sivac-indigo-light flex gap-3 items-start">
         <Info size={18} strokeWidth={2.5} className="flex-shrink-0 mt-0.5 text-sivac-blue-light" />
         <div className="text-13 leading-relaxed">
@@ -47,10 +47,10 @@ export function Paso6GuiaPractica({ formData, updateFormData }: Paso6GuiaPractic
         </div>
       </div>
 
-      {/* Tarjeta Principal de Guía Práctica */}
+      {}
       <div className="glass-card p-6 sm:p-8 space-y-6 rounded-xl bg-white/5 border border-white/10">
         
-        {/* Lista de Criterios */}
+        {}
         <div className="space-y-6 divide-y divide-white/5">
           {items.map((item, idx) => (
             <div key={item.id} className={`pt-6 ${idx === 0 ? "pt-0" : ""} space-y-3`}>
@@ -63,9 +63,9 @@ export function Paso6GuiaPractica({ formData, updateFormData }: Paso6GuiaPractic
                   <p className="text-11 text-sivac-muted ml-6 max-w-xl">{item.description}</p>
                 </div>
 
-                {/* Controles de Tres Opciones: CUMPLE / NO CUMPLE / NO APLICA */}
+                {}
                 <div className="flex bg-sivac-bg-input-admin/60 border border-white/10 p-0.5 rounded-lg w-full lg:w-[320px] shrink-0">
-                  {/* Cumple */}
+                  {}
                   <button
                     type="button"
                     onClick={() => updateFormData({ [item.id]: "CUMPLE" })}
@@ -79,7 +79,7 @@ export function Paso6GuiaPractica({ formData, updateFormData }: Paso6GuiaPractic
                     <span>Cumple</span>
                   </button>
 
-                  {/* No Cumple */}
+                  {}
                   <button
                     type="button"
                     onClick={() => updateFormData({ [item.id]: "NO CUMPLE" })}
@@ -93,7 +93,7 @@ export function Paso6GuiaPractica({ formData, updateFormData }: Paso6GuiaPractic
                     <span>No Cumple</span>
                   </button>
 
-                  {/* No Aplica */}
+                  {}
                   <button
                     type="button"
                     onClick={() => updateFormData({ [item.id]: "NO APLICA" })}
@@ -112,7 +112,7 @@ export function Paso6GuiaPractica({ formData, updateFormData }: Paso6GuiaPractic
           ))}
         </div>
 
-        {/* Observaciones de Guía Práctica */}
+        {}
         <div className="space-y-3 border-t border-white/5 pt-6">
           <label className="block text-14 font-semibold text-sivac-light">
             Observaciones de la Actividad Práctica (Opcional)

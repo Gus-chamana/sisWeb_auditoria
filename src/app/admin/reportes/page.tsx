@@ -27,7 +27,7 @@ import { createClient } from "@/utils/supabase/client";
 
 const parseAsistenciaObs = (rawObs: string) => {
   if (!rawObs) return { alumnosAmbiente: "" as number | "", alumnosIntranet: "" as number | "", observaciones: "" };
-  const match = rawObs.match(/^\[alumnos_ambiente:(\d*),alumnos_intranet:(\d*)\](.*)$/s);
+  const match = rawObs.match(/^\[alumnos_ambiente:(\d*),alumnos_intranet:(\d*)\]([\s\S]*)$/);
   if (match) {
     return {
       alumnosAmbiente: match[1] === "" ? "" : parseInt(match[1], 10),
@@ -38,9 +38,9 @@ const parseAsistenciaObs = (rawObs: string) => {
   return { alumnosAmbiente: "" as number | "", alumnosIntranet: "" as number | "", observaciones: rawObs };
 };
 
-// -----------------------------------------------------------
-// Interfaz para los registros de auditoría desde Supabase
-// -----------------------------------------------------------
+
+
+
 interface AuditRecord {
   id: string;
   aula: string;
@@ -64,7 +64,7 @@ interface AuditRecord {
   firmaAuditorUrl: string;
   evidenciasFotos?: { id: number; url_foto: string; seccion: string }[];
 
-  // Detalle de evaluaciones (se cargan bajo demanda)
+  
   evalControl?: {
     presente_id: number | null;
     horario_id: number | null;
@@ -93,14 +93,14 @@ interface AuditRecord {
   } | null;
 }
 
-// -----------------------------------------------------------
-// Helpers: Mapeo de IDs de opciones_evaluacion a etiquetas
-// Basado en los IDs usados en el wizard de inspecciones:
-//   presente: 4=Presente/SI, 5=Ausente/NO
-//   horario: 6=Puntual/Cumple, 7=Impuntual/No Cumple
-//   interaccion: 8=Interactúa/SI, 9=No Interactúa/NO
-//   cumple genérico: 1=CUMPLE, 2=NO CUMPLE, 3=NO APLICA
-// -----------------------------------------------------------
+
+
+
+
+
+
+
+
 const mapPresente = (id: number | null | undefined): "SI" | "NO" | "" => {
   if (id === 4) return "SI";
   if (id === 5) return "NO";
@@ -138,7 +138,7 @@ const mapAmbienteCumple = (id: number | null | undefined): "Cumple" | "No cumple
   return "";
 };
 
-// Formato de fecha ISO (YYYY-MM-DD) a DD/MM/YYYY para el visor
+
 const formatDateDisplay = (dateStr: string | null | undefined): string => {
   if (!dateStr) return "—";
   try {
@@ -152,13 +152,13 @@ const formatDateDisplay = (dateStr: string | null | undefined): string => {
   }
 };
 
-// Formato de hora (HH:MM:SS) a HH:MM
+
 const formatTimeDisplay = (timeStr: string | null | undefined): string => {
   if (!timeStr) return "";
   return timeStr.substring(0, 5);
 };
 
-// Mapear estado_id a texto legible
+
 const mapEstado = (estadoId: number | null | undefined): "Cumplido" | "Pendiente" | "En progreso" | "Observada" => {
   if (estadoId === 1) return "Pendiente";
   if (estadoId === 2) return "En progreso";
@@ -167,7 +167,7 @@ const mapEstado = (estadoId: number | null | undefined): "Cumplido" | "Pendiente
   return "Pendiente";
 };
 
-// Firmas predeterminadas para Auditor y Admin (en formato SVG Base64)
+
 const getPredefinedSignature = (name: string): string => {
   const normalized = name.toLowerCase().trim();
   if (normalized.includes("diana") || normalized.includes("auditora")) {
@@ -183,7 +183,7 @@ export default function ReportesPage() {
   const { user, loading } = useAuth();
   const supabase = createClient();
 
-  // --- Estado ---
+  
   const [audits, setAudits] = useState<AuditRecord[]>([]);
   const [loadingAudits, setLoadingAudits] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -200,17 +200,17 @@ export default function ReportesPage() {
   const ROL_ACTIVO = user?.rol;
   const currentUser = user;
 
-  // --- Cargar sedes desde Supabase para los filtros dinámicos ---
+  
   const fetchSedes = useCallback(async () => {
     const { data } = await supabase.from("sedes").select("id, nombre").order("nombre");
     if (data) setSedes(data);
   }, [supabase]);
 
-  // --- Cargar las visitas y sus evaluaciones desde Supabase ---
+  
   const fetchAudits = useCallback(async () => {
     setLoadingAudits(true);
     try {
-      // Traer todas las visitas con sus relaciones
+      
       let query = supabase
         .from("visitas")
         .select(`
@@ -242,9 +242,9 @@ export default function ReportesPage() {
         .is("deleted_at", null);
 
       if (currentUser?.rol === "Auditor") {
-        query = query.eq("auditor_id", parseInt(currentUser.id, 10));
+        query = query.eq("auditor_id", parseInt(currentUser?.id || "0", 10));
       } else if (currentUser?.rol === "Docente") {
-        query = query.eq("docente_id", parseInt(currentUser.id, 10));
+        query = query.eq("docente_id", parseInt(currentUser?.id || "0", 10));
       }
 
       const { data: visitas, error } = await query.order("id", { ascending: false });
@@ -275,7 +275,7 @@ export default function ReportesPage() {
           auditorNombre = "Diana Auditora";
         }
 
-        // Relaciones 1:1 representadas por arrays en PostgREST
+        
         const evalControl = Array.isArray(v.eval_control_docente)
           ? v.eval_control_docente[0]
           : (v.eval_control_docente || null);
@@ -295,12 +295,12 @@ export default function ReportesPage() {
 
         let effectiveEstadoId = v.estado_id;
         if (step < 7) {
-          effectiveEstadoId = 2; // En progreso
+          effectiveEstadoId = 2; 
         } else {
           if (!hasTeacherSignature) {
-            effectiveEstadoId = 1; // Pendiente
+            effectiveEstadoId = 1; 
           } else {
-            effectiveEstadoId = hasEvidence ? 3 : 4; // Completada u Observada
+            effectiveEstadoId = hasEvidence ? 3 : 4; 
           }
         }
 
@@ -333,9 +333,9 @@ export default function ReportesPage() {
         };
       });
 
-      // Si el rol es Docente, filtrar solo las visitas del docente actual
+      
       const finalAudits = ROL_ACTIVO === "Docente"
-        ? mapped.filter((a) => a.docenteId === currentUser.id)
+        ? mapped.filter((a) => a.docenteId === currentUser?.id)
         : mapped;
 
       setAudits(finalAudits);
@@ -346,7 +346,7 @@ export default function ReportesPage() {
     }
   }, [supabase, ROL_ACTIVO, currentUser?.id]);
 
-  // --- Efectos ---
+  
   useEffect(() => {
     if (user) {
       fetchAudits();
@@ -354,7 +354,7 @@ export default function ReportesPage() {
     }
   }, [fetchAudits, fetchSedes, user]);
 
-  // --- Filtrado reactivo en cliente ---
+  
   const filteredAudits = React.useMemo(() => {
     return audits.filter((audit) => {
       const matchesSearch =
@@ -373,7 +373,7 @@ export default function ReportesPage() {
         (stateFilter === "en_progreso" && audit.estado === "En progreso") ||
         (stateFilter === "observada" && audit.estado === "Observada");
 
-      // Filtrar por rango de fechas (la fecha está en DD/MM/YYYY)
+      
       if (startDate || endDate) {
         const parts = audit.fechaVisita.split("/");
         if (parts.length === 3) {
@@ -400,7 +400,7 @@ export default function ReportesPage() {
     });
   }, [audits, searchTerm, sedeFilter, stateFilter, startDate, endDate]);
 
-  // --- Agrupamiento por aula ---
+  
   const groupedAudits = React.useMemo(() => {
     const groups: Record<string, AuditRecord[]> = {};
     filteredAudits.forEach((audit) => {
@@ -411,7 +411,7 @@ export default function ReportesPage() {
     return groups;
   }, [filteredAudits]);
 
-  // --- Limpiar selecciones que desaparecen por filtro ---
+  
   useEffect(() => {
     const visibleIds = new Set(filteredAudits.map((a) => a.id));
     setCheckedAuditIds((prev) => {
@@ -423,7 +423,7 @@ export default function ReportesPage() {
     });
   }, [filteredAudits]);
 
-  // --- Loading guard ---
+  
   if (loading || !user) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -433,7 +433,7 @@ export default function ReportesPage() {
     );
   }
 
-  // --- Handlers de selección ---
+  
   const toggleAulaExpand = (aula: string) => {
     setExpandedAulas((prev) => ({ ...prev, [aula]: !prev[aula] }));
   };
@@ -470,7 +470,7 @@ export default function ReportesPage() {
     const html2pdf = (await import("html2pdf.js")).default;
 
     if (checkedAuditIds.length === 1) {
-      // Descarga individual
+      
       const id = checkedAuditIds[0];
       const element = document.getElementById(`report-card-${id}`);
       if (!element) return;
@@ -480,7 +480,7 @@ export default function ReportesPage() {
         ? `Ficha_Visita_${audit.sedeFilial.split(" - ")[0]}_${audit.aula}_${audit.fechaVisita.replace(/\//g, "-")}.pdf`
         : `Reporte_Visita_${id}.pdf`;
 
-      // Clonar y envolver para quitar márgenes y sombreado en PDF
+      
       const clone = element.cloneNode(true) as HTMLElement;
       clone.style.boxShadow = "none";
       clone.style.borderRadius = "0";
@@ -503,7 +503,7 @@ export default function ReportesPage() {
 
       html2pdf().from(wrapper).set(opt).save();
     } else {
-      // Descarga conjunta en un único archivo PDF multipágina
+      
       const container = document.createElement("div");
       container.className = "pdf-capture-wrapper";
 
@@ -511,9 +511,9 @@ export default function ReportesPage() {
         const element = document.getElementById(`report-card-${id}`);
         if (!element) continue;
 
-        // Clonar para no alterar la vista actual del DOM
+        
         const clone = element.cloneNode(true) as HTMLElement;
-        // Remover estilos de sombreado y bordes del contenedor en pantalla para el PDF
+        
         clone.style.boxShadow = "none";
         clone.style.borderRadius = "0";
         clone.style.margin = "0";
@@ -538,7 +538,7 @@ export default function ReportesPage() {
     }
   };
 
-  // --- Transformar un AuditRecord a props de FormatoVisitaUTP ---
+  
   const getReportData = (audit: AuditRecord): FormatoVisitaUTPProps => {
     if (templateMode === "empty") return {};
 
@@ -562,7 +562,7 @@ export default function ReportesPage() {
       horaPracticaTeoria: audit.horasPracticaTeoria,
       lugarVisita: audit.aula,
 
-      // Sección 1: Control Docente
+      
       docenteNombre: audit.docenteNombre,
       docentePresente: mapPresente(ec?.presente_id),
       horarioProgramado: mapHorario(ec?.horario_id),
@@ -570,37 +570,37 @@ export default function ReportesPage() {
       actividad: ec?.actividad_detalle || "",
       obs1: ec?.observaciones || "",
 
-      // Sección 2: Material Aula Virtual
+      
       materialCargado: mapCumple(ea?.material_cumple_id),
       obs2: ea?.obs_material || "",
 
-      // Sección 3: Asistencia
+      
       asistenciaAmbiente: mapAmbienteCumple(eas?.ambiente_cumple_id),
       asistenciaAmbienteObs: parsedAsistencia.alumnosAmbiente !== "" ? `${parsedAsistencia.alumnosAmbiente} alumnos` : "",
       asistenciaIntranet: mapAmbienteCumple(eas?.intranet_cumple_id),
       asistenciaIntranetObs: parsedAsistencia.alumnosIntranet !== "" ? `${parsedAsistencia.alumnosIntranet} alumnos` : "",
       obs3: parsedAsistencia.observaciones,
 
-      // Sección 4: Avance Silábico
+      
       silaboCoincide: mapCumple(ea?.silabo_coincide_actual_id),
       temaAnteriorCoincide: mapCumple(ea?.silabo_coincide_anterior_id),
       ingresoSilaboVirtual: mapCumple(ea?.silabo_virtual_id),
       obs4: ea?.obs_avance_silabico || "",
 
-      // Sección 5: Guía de Práctica
+      
       guiaPractica: mapCumpleTriple(eg?.cumple_tema_id),
       logroMedir: mapCumpleTriple(eg?.evidencia_logro_id),
       rubricaEvaluacion: mapCumpleTriple(eg?.cuenta_rubrica_id),
       obs5: eg?.observaciones || "",
 
-      // Pie del reporte
+      
       responsableActividad: audit.auditorNombre || "",
       requerimientosSolicitados: audit.requerimientosSolicitados,
       firmaDocenteUrl: audit.firmaDocenteUrl,
       firmaResponsableUrl: audit.firmaAuditorUrl || (() => {
         if (typeof window !== "undefined" && user?.id) {
           const localSig = localStorage.getItem(`sivac_signature_user_${user.id}`);
-          if (localSig && user.nombres && audit.auditorNombre.toLowerCase().includes(user.nombres.toLowerCase())) {
+          if (localSig && user?.nombre && audit.auditorNombre.toLowerCase().includes(user.nombre.toLowerCase())) {
             return localSig;
           }
         }
@@ -610,13 +610,13 @@ export default function ReportesPage() {
     };
   };
 
-  // --- Render ---
+  
   return (
     <div className="flex h-[calc(100vh-100px)] -m-8 relative overflow-hidden font-inter text-sivac-light bg-sivac-bg-primary">
       
-      {/* ============================================================ */}
-      {/* PANEL IZQUIERDO: Listado de Aulas/Visitas (Colapsable)     */}
-      {/* ============================================================ */}
+      {}
+      {}
+      {}
       <div
         className={`bg-sivac-bg-surface flex flex-col border-r border-sivac-border transition-all duration-300 relative z-10 no-print ${
           isLeftCollapsed ? "w-0 overflow-hidden opacity-0" : "w-full md:w-[380px] lg:w-[420px]"
@@ -637,7 +637,7 @@ export default function ReportesPage() {
             </p>
           </div>
 
-          {/* Buscador */}
+          {}
           <div className="relative">
             <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-sivac-muted">
               <Search size={14} />
@@ -651,7 +651,7 @@ export default function ReportesPage() {
             />
           </div>
 
-          {/* Filtros rápidos (Solo Admin / Auditor) */}
+          {}
           {ROL_ACTIVO !== "Docente" && (
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -690,7 +690,7 @@ export default function ReportesPage() {
             </div>
           )}
 
-          {/* Filtro de Rango de Fechas */}
+          {}
           <div className="space-y-2 pt-2 border-t border-sivac-border/30">
             <div className="flex justify-between items-center">
               <label className="block text-[10px] font-bold text-sivac-muted uppercase">
@@ -732,7 +732,7 @@ export default function ReportesPage() {
           </div>
         </div>
 
-        {/* Seleccionar todo */}
+        {}
         {filteredAudits.length > 0 && (
           <div className="px-6 py-2.5 bg-sivac-bg-secondary/20 border-b border-sivac-border/20 flex items-center justify-between no-print shrink-0">
             <label className="flex items-center gap-2 text-12 font-bold text-sivac-muted cursor-pointer hover:text-sivac-light transition-colors">
@@ -756,7 +756,7 @@ export default function ReportesPage() {
           </div>
         )}
 
-        {/* Lista de visitas agrupadas por Aula */}
+        {}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {loadingAudits ? (
             <div className="flex flex-col items-center justify-center py-16 space-y-3">
@@ -774,7 +774,7 @@ export default function ReportesPage() {
               const isExpanded = expandedAulas[aula] !== false;
               return (
                 <div key={aula} className="space-y-2">
-                  {/* Classroom Accordion Header */}
+                  {}
                   <button
                     type="button"
                     onClick={() => toggleAulaExpand(aula)}
@@ -795,7 +795,7 @@ export default function ReportesPage() {
                     />
                   </button>
 
-                  {/* Classroom Reports Cards List */}
+                  {}
                   {isExpanded && (
                     <div className="space-y-2.5 pl-3 border-l border-sivac-border-glass">
                       {aulaAudits.map((audit) => {
@@ -815,7 +815,7 @@ export default function ReportesPage() {
                                 : "bg-sivac-bg-secondary/40 border-sivac-border-glass hover:bg-sivac-bg-secondary/80 hover:border-sivac-border/50"
                             }`}
                           >
-                            {/* Checkbox, Curso y Estado */}
+                            {}
                             <div className="flex justify-between items-start w-full gap-3">
                               <div className="flex items-start gap-2.5">
                                 <input
@@ -851,13 +851,13 @@ export default function ReportesPage() {
                               </span>
                             </div>
 
-                            {/* Docente */}
+                            {}
                             <div className="flex items-center gap-2 text-11 text-sivac-body mt-0.5">
                               <User size={12} className="text-sivac-dim shrink-0" />
                               <span className="truncate">{audit.docenteNombre}</span>
                             </div>
 
-                            {/* Sede y Fecha */}
+                            {}
                             <div className="flex justify-between items-center text-[10px] text-sivac-muted border-t border-sivac-border/25 pt-2 mt-1">
                               <span className="flex items-center gap-1">
                                 <MapPin size={10} className="shrink-0" />
@@ -869,7 +869,7 @@ export default function ReportesPage() {
                               </span>
                             </div>
 
-                            {/* Barra lateral indicadora de selección */}
+                            {}
                             {isChecked && (
                               <div className="absolute left-0 top-3 bottom-3 w-1 bg-sivac-blue rounded-r" />
                             )}
@@ -885,9 +885,9 @@ export default function ReportesPage() {
         </div>
       </div>
 
-      {/* ============================================================ */}
-      {/* BOTÓN FLOTANTE PARA EXPANDIR/COLAPSAR SIDEBAR IZQUIERDO     */}
-      {/* ============================================================ */}
+      {}
+      {}
+      {}
       <button
         onClick={() => setIsLeftCollapsed(!isLeftCollapsed)}
         className="absolute bottom-6 left-6 md:static md:flex items-center justify-center w-8 h-8 rounded-full bg-sivac-bg-toggle border border-sivac-border text-sivac-heading hover:text-white shadow-xl hover:bg-sivac-border transition-colors duration-150 z-20 cursor-pointer no-print self-center -mx-4 shrink-0"
@@ -896,12 +896,12 @@ export default function ReportesPage() {
         {isLeftCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
       </button>
 
-      {/* ============================================================ */}
-      {/* PANEL DERECHO: Visor de PDF Dinámico e Interactivo         */}
-      {/* ============================================================ */}
+      {}
+      {}
+      {}
       <div className="flex-1 flex flex-col bg-sivac-bg-secondary/40 overflow-hidden relative">
         
-        {/* Barra superior de herramientas del visor (Oculta en Impresión) */}
+        {}
         <div className="h-[64px] bg-sivac-bg-surface/60 border-b border-sivac-border px-6 flex items-center justify-between no-print shrink-0">
           <div className="flex items-center gap-4">
             <div className="hidden lg:flex items-center gap-2 text-13 text-sivac-muted">
@@ -909,7 +909,7 @@ export default function ReportesPage() {
               <span>Visor del Formato Oficial</span>
             </div>
             
-            {/* Toggle de Plantilla Lleno vs Vacío */}
+            {}
             {checkedAuditIds.length > 0 && (
               <div className="flex h-[32px] rounded-lg border border-sivac-border-card p-0.5 bg-sivac-bg-input-admin w-[240px]">
                 <button
@@ -938,7 +938,7 @@ export default function ReportesPage() {
             )}
           </div>
 
-          {/* Acciones de exportación */}
+          {}
           <div className="flex items-center gap-2.5">
             {checkedAuditIds.length > 0 && (
               <button
@@ -967,7 +967,7 @@ export default function ReportesPage() {
           </div>
         </div>
 
-        {/* Contenedor del papel (Con fondo gris oscuro para emular hoja física en pantalla oscura) */}
+        {}
         <div className="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col items-center gap-8 bg-gray-900/60 print:bg-white print:p-0 print:gap-0">
           {checkedAuditIds.length > 0 ? (
             checkedAuditIds.map((id) => {

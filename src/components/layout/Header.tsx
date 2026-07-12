@@ -79,7 +79,7 @@ export function Header() {
           const readMapStr = localStorage.getItem("sivac_read_notifications");
           const readMap = readMapStr ? JSON.parse(readMapStr) : {};
 
-          // Calculate how many visits have new activity
+          
           const unread = data.filter((v: any) => {
             const activityTime = getLastActivityTime(v);
             const lastSeenTime = readMap[v.id] || 0;
@@ -131,7 +131,7 @@ export function Header() {
       if (error) {
         setPasswordError(error.message);
       } else {
-        // Also update the public.usuarios table password_hash for the professor check
+        
         try {
           const msgBuffer = new TextEncoder().encode(newPassword);
           const hashBuffer = await window.crypto.subtle.digest("SHA-256", msgBuffer);
@@ -149,7 +149,7 @@ export function Header() {
         setPasswordSuccess("Contraseña actualizada con éxito.");
         setNewPassword("");
         setConfirmPassword("");
-        // Cerrar modal automáticamente tras 1.5 segundos
+        
         setTimeout(() => {
           setShowPasswordModal(false);
           setPasswordSuccess("");
@@ -175,7 +175,7 @@ export function Header() {
 
   return (
     <header className="h-[72px] bg-sivac-bg-primary border-b border-sivac-border flex items-center justify-between px-8 sticky top-0 z-20 font-inter">
-      {/* Search Input */}
+      {}
       <div className="relative w-full max-w-md">
         <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-sivac-muted">
           <Search size={16} strokeWidth={2} />
@@ -187,9 +187,9 @@ export function Header() {
         />
       </div>
 
-      {/* Right Actions */}
+      {}
       <div className="flex items-center gap-4">
-        {/* Notifications Button */}
+        {}
         <Link
           href="/admin/notificaciones"
           className="w-10 h-10 flex items-center justify-center bg-sivac-bg-toggle border border-sivac-border rounded-xl text-sivac-body hover:text-sivac-heading transition-colors relative"
@@ -202,7 +202,7 @@ export function Header() {
           )}
         </Link>
 
-        {/* Profile Button / Dropdown Container */}
+        {}
         <div className="relative" ref={dropdownRef}>
           <button
             type="button"
@@ -229,10 +229,10 @@ export function Header() {
             />
           </button>
 
-          {/* Profile Dropdown Menu */}
+          {}
           {showDropdown && (
             <div className="absolute right-0 mt-2 w-72 bg-sivac-bg-surface border border-sivac-border rounded-xl shadow-xl z-50 py-2.5 font-inter text-left animate-in fade-in-50 slide-in-from-top-2 duration-100">
-              {/* User Header Details */}
+              {}
               <div className="px-4 pb-3 border-b border-sivac-border mb-2.5">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-sivac-blue/10 border border-sivac-blue/20 flex items-center justify-center text-sivac-indigo font-bold text-16">
@@ -249,7 +249,7 @@ export function Header() {
                 </div>
               </div>
 
-              {/* Menu Actions */}
+              {}
               <div className="px-1.5 space-y-1">
                 <button
                   type="button"
@@ -280,11 +280,11 @@ export function Header() {
         </div>
       </div>
 
-      {/* Modal: Cambiar Contraseña */}
+      {}
       {showPasswordModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-sivac-bg-surface border border-sivac-border rounded-xl shadow-2xl overflow-hidden font-inter animate-in zoom-in-95 duration-150">
-            {/* Modal Header */}
+            {}
             <div className="px-6 py-4 border-b border-sivac-border flex items-center justify-between bg-sivac-bg-primary">
               <h3 className="text-16 font-bold font-poppins text-sivac-light flex items-center gap-2">
                 <Lock size={18} className="text-sivac-blue" />
@@ -305,7 +305,7 @@ export function Header() {
               </button>
             </div>
 
-            {/* Modal Body */}
+            {}
             <form onSubmit={handleUpdatePassword} className="p-6 space-y-4">
               {passwordError && (
                 <div className="p-3.5 bg-sivac-red/10 border border-sivac-red/20 text-sivac-red-light text-12.5 rounded-lg">
@@ -364,7 +364,7 @@ export function Header() {
                 </div>
               </div>
 
-              {/* Modal Footer */}
+              {}
               <div className="pt-4 border-t border-sivac-border flex items-center justify-end gap-3">
                 <button
                   type="button"
