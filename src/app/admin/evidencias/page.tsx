@@ -53,17 +53,25 @@ export default function EvidenciasPage() {
   // Subida de archivos
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [uploadSection, setUploadSection] = useState<string>("Material utilizado");
+  const [uploadSection, setUploadSection] = useState<string>("Inicio de Clases");
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
   const ROL_ACTIVO = user?.rol;
-  const esSoloConsulta = ROL_ACTIVO === "Admin";
+  
+  const selectedVisitObj = visits.find((v) => v.id.toString() === selectedVisitId);
+  const esPropietario = selectedVisitObj && Number(selectedVisitObj.auditor_id) === Number(user?.id);
+
+  // El admin/auditor solo puede subir/eliminar evidencias si él mismo es el auditor de la visita.
+  // El docente nunca puede subir/eliminar evidencias.
+  const esSoloConsulta = ROL_ACTIVO === "Docente" || 
+    (ROL_ACTIVO === "Admin" && !esPropietario) || 
+    (ROL_ACTIVO === "Auditor" && !esPropietario);
 
   // --- Cargar visitas ---
   const fetchVisits = useCallback(async () => {
     setLoadingVisits(true);
     try {
-      const { data, error } = await supabase
+      let dbQuery = supabase
         .from("visitas")
         .select(`
           id,
@@ -71,13 +79,21 @@ export default function EvidenciasPage() {
           ciclo,
           turno,
           semana_nro,
+          auditor_id,
           aulas(nombre),
           asignaturas(nombre),
           docente:usuarios!visitas_docente_id_fkey(nombres, apellidos),
           sedes(nombre)
         `)
-        .is("deleted_at", null)
-        .order("id", { ascending: false });
+        .is("deleted_at", null);
+
+      if (ROL_ACTIVO === "Auditor") {
+        dbQuery = dbQuery.eq("auditor_id", parseInt(user?.id || "0", 10));
+      } else if (ROL_ACTIVO === "Docente") {
+        dbQuery = dbQuery.eq("docente_id", parseInt(user?.id || "0", 10));
+      }
+
+      const { data, error } = await dbQuery.order("id", { ascending: false });
 
       if (error) {
         console.error("Error al cargar visitas para evidencias:", error);
@@ -94,6 +110,7 @@ export default function EvidenciasPage() {
             asignatura: v.asignaturas?.nombre || "Sin curso",
             docenteNombre: docN,
             sedeNombre: v.sedes?.nombre || "Sin sede",
+            auditor_id: v.auditor_id,
           };
         });
         setVisits(mapped);
@@ -114,13 +131,20 @@ export default function EvidenciasPage() {
     }
   }, [supabase, searchParams]);
 
+  const visitsRef = React.useRef<SIVACVisit[]>([]);
+  useEffect(() => {
+    visitsRef.current = visits;
+  }, [visits]);
+
   // --- Cargar evidencias de la visita seleccionada ---
-  const fetchEvidences = useCallback(async (visitaId: string) => {
+  const fetchEvidences = useCallback(async (visitaId: string, showLoader = false) => {
     if (!visitaId) {
       setEvidences([]);
       return;
     }
-    setLoadingEvidences(true);
+    if (showLoader) {
+      setLoadingEvidences(true);
+    }
     try {
       const { data, error } = await supabase
         .from("evidencias_fotos")
@@ -134,16 +158,30 @@ export default function EvidenciasPage() {
       }
 
       if (data) {
-        const visitDetail = visits.find(v => v.id.toString() === visitaId);
+        const visitDetail = visitsRef.current.find(v => v.id.toString() === visitaId);
         const mapped: EvidenceCard[] = data.map((e: any) => {
-          // Extraer nombre del archivo desde el path
-          const filename = e.url_foto ? e.url_foto.split("/").pop() || "foto.jpg" : "foto.jpg";
+          // Extraer nombre del archivo desde el path o asignar nombre amigable si es base64
+          let filename = "foto.jpg";
+          if (e.url_foto) {
+            if (e.url_foto.startsWith("data:")) {
+              filename = `Evidencia - ${e.seccion || "General"}`;
+            } else {
+              filename = e.url_foto.split("/").pop() || "foto.jpg";
+              if (filename.startsWith("mock_")) {
+                filename = filename.substring(5);
+              }
+            }
+          }
           
           // Formatear fecha
           let dateText = "Recién subido";
           if (e.fecha_captura) {
             try {
-              const d = new Date(e.fecha_captura);
+              let isoStr = e.fecha_captura;
+              if (!isoStr.endsWith("Z") && !isoStr.includes("+") && !/-\d{2}:\d{2}$/.test(isoStr)) {
+                isoStr += "Z";
+              }
+              const d = new Date(isoStr);
               dateText = d.toLocaleString("es-ES", {
                 day: "2-digit",
                 month: "2-digit",
@@ -161,7 +199,7 @@ export default function EvidenciasPage() {
           return {
             id: e.id,
             section: `Sección: ${e.seccion || "General"}`,
-            filename: filename.startsWith("mock_") ? filename.substring(5) : filename,
+            filename,
             datetime: dateText,
             location: visitDetail ? `${visitDetail.sedeNombre} - ${visitDetail.aula}` : "Sede Central",
             size: "1.5 MB", // Mock size
@@ -175,7 +213,7 @@ export default function EvidenciasPage() {
     } finally {
       setLoadingEvidences(false);
     }
-  }, [supabase, visits]);
+  }, [supabase]);
 
   // --- Efectos ---
   useEffect(() => {
@@ -186,7 +224,7 @@ export default function EvidenciasPage() {
 
   useEffect(() => {
     if (selectedVisitId) {
-      fetchEvidences(selectedVisitId);
+      fetchEvidences(selectedVisitId, true);
       // Sincronizar parámetro URL silenciosamente
       const params = new URLSearchParams(window.location.search);
       if (params.get("visitaId") !== selectedVisitId) {
@@ -195,15 +233,27 @@ export default function EvidenciasPage() {
     }
   }, [selectedVisitId, fetchEvidences, router]);
 
+  // Helper to convert a file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
   // --- Subir archivos ---
   const handleUploadFiles = async (files: File[]) => {
     if (!selectedVisitId) return;
     try {
       for (const file of files) {
+        const base64Data = await fileToBase64(file);
         const { error } = await supabase.from("evidencias_fotos").insert({
           visita_id: parseInt(selectedVisitId, 10),
           seccion: uploadSection,
-          url_foto: `/uploads/mock_${file.name}`,
+          url_foto: base64Data,
+          fecha_captura: new Date().toISOString(),
         });
         if (error) throw error;
       }
@@ -263,12 +313,12 @@ export default function EvidenciasPage() {
         </div>
       </div>
 
-      {/* Alerta de Modo de Consulta para Admin */}
+      {/* Alerta de Modo de Consulta */}
       {esSoloConsulta && (
         <div className="p-4 rounded-lg bg-sivac-blue/10 border border-sivac-blue/30 text-sivac-indigo-light flex gap-3 items-center">
           <ShieldAlert size={18} className="text-sivac-blue-light flex-shrink-0" />
           <span className="text-13">
-            <strong>Modo de Consulta Activo:</strong> Como Administrador, tu acceso a esta pantalla es únicamente de lectura. No está permitido cargar nuevas evidencias ni eliminar registros.
+            <strong>Modo de Consulta Activo:</strong> Tu acceso a esta visita es de solo lectura. No está permitido cargar nuevas evidencias ni eliminar archivos ya que no eres el auditor asignado a esta visita.
           </span>
         </div>
       )}
@@ -346,11 +396,10 @@ export default function EvidenciasPage() {
                 onChange={(e) => setUploadSection(e.target.value)}
                 className="h-[34px] px-3 bg-sivac-bg-input-admin border border-sivac-border-card rounded text-12 text-sivac-light focus:outline-none focus:border-sivac-blue cursor-pointer"
               >
-                <option value="Material utilizado">Material utilizado</option>
-                <option value="Control de asistencia">Control de asistencia</option>
-                <option value="Avance silábico">Avance silábico</option>
-                <option value="Guía de práctica">Guía de práctica</option>
-                <option value="General">General / Entorno</option>
+                <option value="Inicio de Clases">Inicio de Clases</option>
+                <option value="Desarrollo Temático">Desarrollo Temático</option>
+                <option value="Uso de Laboratorio">Uso de Laboratorio</option>
+                <option value="Cierre y Firma">Cierre y Firma</option>
               </select>
             </div>
           </div>
@@ -435,10 +484,20 @@ export default function EvidenciasPage() {
                 key={card.id}
                 className="admin-card overflow-hidden flex flex-col sm:flex-row group hover:border-sivac-blue/30 transition-all"
               >
-                {/* Image Preview / Mock Container */}
-                <div className="w-full sm:w-[180px] h-[160px] sm:h-auto bg-sivac-bg-input-admin border-b sm:border-b-0 sm:border-r border-sivac-border-card flex flex-col items-center justify-center text-sivac-dim relative overflow-hidden group-hover:bg-sivac-bg-secondary/10 transition-colors">
-                  <ImageIcon size={36} strokeWidth={1.5} className="mb-2 text-sivac-blue-light/70" />
-                  <span className="text-11 font-medium tracking-wide uppercase">{card.size}</span>
+                {/* Image Preview / Container */}
+                <div className="w-full sm:w-[180px] h-[160px] sm:h-auto bg-sivac-bg-input-admin border-b sm:border-b-0 sm:border-r border-sivac-border-card relative overflow-hidden flex items-center justify-center group-hover:bg-sivac-bg-secondary/10 transition-colors">
+                  {card.url_foto ? (
+                    <img 
+                      src={card.url_foto} 
+                      alt={card.filename} 
+                      className="w-full h-full object-cover absolute inset-0"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center">
+                      <ImageIcon size={36} strokeWidth={1.5} className="mb-2 text-sivac-blue-light/70" />
+                      <span className="text-11 font-medium tracking-wide uppercase">{card.size}</span>
+                    </div>
+                  )}
                   {/* Decorative indicator line */}
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-sivac-blue" />
                 </div>

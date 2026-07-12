@@ -10,13 +10,24 @@ interface Paso4FormData {
 interface Paso4AsistenciaProps {
   formData: Paso4FormData;
   updateFormData: (fields: Partial<Paso4FormData>) => void;
+  modalidad: string;
 }
 
-export function Paso4Asistencia({ formData, updateFormData }: Paso4AsistenciaProps) {
+export function Paso4Asistencia({ formData, updateFormData, modalidad }: Paso4AsistenciaProps) {
   const { alumnosAmbiente, alumnosIntranet, observacionesAsistencia } = formData;
 
-  // Comprobar diferencia solo si ambos campos tienen un valor numérico ingresado
+  // Sincronizar automáticamente valores no aplicables cuando cambia la modalidad
+  React.useEffect(() => {
+    if (modalidad === "Virtual" && alumnosAmbiente !== "") {
+      updateFormData({ alumnosAmbiente: "" });
+    } else if (modalidad === "Presencial" && alumnosIntranet !== "") {
+      updateFormData({ alumnosIntranet: "" });
+    }
+  }, [modalidad, alumnosAmbiente, alumnosIntranet, updateFormData]);
+
+  // Comprobar diferencia solo si ambos campos tienen un valor numérico ingresado y es modalidad Híbrido (Dual)
   const tieneDiferencia = 
+    modalidad === "Híbrido" &&
     alumnosAmbiente !== "" && 
     alumnosIntranet !== "" && 
     Number(alumnosAmbiente) !== Number(alumnosIntranet);
@@ -42,17 +53,25 @@ export function Paso4Asistencia({ formData, updateFormData }: Paso4AsistenciaPro
             <label className="block text-14 font-semibold text-sivac-light flex items-center gap-2">
               <Users size={16} className="text-sivac-blue-light" />
               Alumnos en Ambiente (Físico)
+              {modalidad === "Virtual" && (
+                <span className="text-11 font-medium text-orange-400 normal-case">(No aplica en Virtual)</span>
+              )}
             </label>
             <input
               type="number"
               min="0"
-              value={alumnosAmbiente}
+              disabled={modalidad === "Virtual"}
+              value={modalidad === "Virtual" ? "" : alumnosAmbiente}
               onChange={(e) => {
                 const val = e.target.value === "" ? "" : Math.max(0, parseInt(e.target.value, 10));
                 updateFormData({ alumnosAmbiente: val });
               }}
-              placeholder="Ej. 28"
-              className="w-full h-[46px] px-4 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-sivac-light text-14 outline-none focus:border-sivac-blue placeholder:text-sivac-muted transition-colors"
+              placeholder={modalidad === "Virtual" ? "N/A" : "Ej. 28"}
+              className={`w-full h-[46px] px-4 rounded-lg text-sivac-light text-14 outline-none transition-all ${
+                modalidad === "Virtual"
+                  ? "bg-white/5 border border-white/5 text-sivac-muted cursor-not-allowed"
+                  : "bg-sivac-bg-input-admin border border-white/10 focus:border-sivac-blue placeholder:text-sivac-muted"
+              }`}
             />
           </div>
 
@@ -61,17 +80,25 @@ export function Paso4Asistencia({ formData, updateFormData }: Paso4AsistenciaPro
             <label className="block text-14 font-semibold text-sivac-light flex items-center gap-2">
               <BookOpen size={16} className="text-sivac-blue-light" />
               Alumnos en Intranet (Marcados)
+              {modalidad === "Presencial" && (
+                <span className="text-11 font-medium text-orange-400 normal-case">(No aplica en Presencial)</span>
+              )}
             </label>
             <input
               type="number"
               min="0"
-              value={alumnosIntranet}
+              disabled={modalidad === "Presencial"}
+              value={modalidad === "Presencial" ? "" : alumnosIntranet}
               onChange={(e) => {
                 const val = e.target.value === "" ? "" : Math.max(0, parseInt(e.target.value, 10));
                 updateFormData({ alumnosIntranet: val });
               }}
-              placeholder="Ej. 30"
-              className="w-full h-[46px] px-4 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-sivac-light text-14 outline-none focus:border-sivac-blue placeholder:text-sivac-muted transition-colors"
+              placeholder={modalidad === "Presencial" ? "N/A" : "Ej. 30"}
+              className={`w-full h-[46px] px-4 rounded-lg text-sivac-light text-14 outline-none transition-all ${
+                modalidad === "Presencial"
+                  ? "bg-white/5 border border-white/5 text-sivac-muted cursor-not-allowed"
+                  : "bg-sivac-bg-input-admin border border-white/10 focus:border-sivac-blue placeholder:text-sivac-muted"
+              }`}
             />
           </div>
 

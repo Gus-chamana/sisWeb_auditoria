@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Plus, Search, Eye, Edit2, ChevronLeft, ChevronRight, Check, X, Play, FileDown, Trash2, Loader2, Camera } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { createClient } from "@/utils/supabase/client";
+import { FormatoVisitaUTP } from "@/components/Diseño/FormatoPDF/FormatoVisitaUTP";
 
 interface Visit {
   id: string;
@@ -19,6 +20,7 @@ interface Visit {
   semana: number;
   hasEvidence: boolean;
   estadoId: number;
+  auditorId?: number | null;
 }
 
 // Número de registros por página
@@ -44,11 +46,263 @@ export default function VisitasPage() {
   // Paginación
   const [currentPage, setCurrentPage] = React.useState(1);
 
+  // PDF Preview and Download states
+  const [selectedAudit, setSelectedAudit] = React.useState<any | null>(null);
+  const [isPdfModalOpen, setIsPdfModalOpen] = React.useState(false);
+  const [loadingPdfId, setLoadingPdfId] = React.useState<string | null>(null);
+  const [downloadingPdfId, setDownloadingPdfId] = React.useState<string | null>(null);
+  const [tempAuditToDownload, setTempAuditToDownload] = React.useState<any | null>(null);
+
   // --- Cargar sedes dinámicas ---
   const fetchSedes = React.useCallback(async () => {
     const { data } = await supabase.from("sedes").select("id, nombre").order("nombre");
     if (data) setSedes(data);
   }, [supabase]);
+
+  // PDF download effect
+  React.useEffect(() => {
+    if (!tempAuditToDownload) return;
+    
+    const triggerDownload = async () => {
+      try {
+        const html2pdf = (await import("html2pdf.js")).default;
+        const element = document.getElementById(`pdf-download-element-${tempAuditToDownload.id}`);
+        if (element) {
+          const opt = {
+            margin: 0,
+            filename: `Ficha_Visita_${tempAuditToDownload.sedeFilial.split(" - ")[0]}_${tempAuditToDownload.aula}_${tempAuditToDownload.fechaVisita.replace(/\//g, "-")}.pdf`,
+            image: { type: "jpeg" as const, quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: "mm" as const, format: "a4" as const, orientation: "portrait" as const },
+            pagebreak: { mode: ["css" as const, "legacy" as const] },
+          };
+          await html2pdf().from(element).set(opt).save();
+        }
+      } catch (err) {
+        console.error("Error al generar PDF:", err);
+      } finally {
+        setTempAuditToDownload(null);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      triggerDownload();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [tempAuditToDownload]);
+
+  const fetchCompleteVisit = async (visitaId: string) => {
+    try {
+      const { data: v, error } = await supabase
+        .from("visitas")
+        .select(`
+          id,
+          fecha_visita,
+          hora_inicio_real,
+          hora_termino_real,
+          ciclo,
+          turno,
+          semana_nro,
+          estado_id,
+          campo_formativo,
+          horas_teoria_practica,
+          requerimientos_solicitados,
+          firma_docente_b64,
+          firma_auditor_b64,
+          ultimo_paso_completado,
+          sedes(id, nombre),
+          aulas(nombre),
+          asignaturas(nombre),
+          docente:usuarios!visitas_docente_id_fkey(id, nombres, apellidos),
+          auditor:usuarios!visitas_auditor_id_fkey(id, nombres, apellidos),
+          eval_control_docente(presente_id, horario_id, interaccion_id, actividad_detalle, observaciones),
+          eval_academica_detalle(material_cumple_id, obs_material, silabo_coincide_actual_id, silabo_coincide_anterior_id, silabo_virtual_id, obs_avance_silabico),
+          eval_asistencia(ambiente_cumple_id, intranet_cumple_id, observaciones),
+          eval_guia_practica(cumple_tema_id, evidencia_logro_id, cuenta_rubrica_id, observaciones),
+          evidencias_fotos(id, url_foto, seccion)
+        `)
+        .eq("id", parseInt(visitaId, 10))
+        .maybeSingle();
+
+      if (error || !v) {
+        console.error("Error fetching complete visit:", error);
+        return null;
+      }
+
+      const docenteObj: any = Array.isArray(v.docente) ? v.docente[0] : v.docente;
+      const docenteNombres = docenteObj?.nombres || "";
+      const docenteApellidos = docenteObj?.apellidos || "";
+      const docenteNombre = `${docenteNombres} ${docenteApellidos}`.trim() || "Docente sin asignar";
+
+      const auditorObj: any = Array.isArray(v.auditor) ? v.auditor[0] : v.auditor;
+      const auditorNombres = auditorObj?.nombres || "";
+      const auditorApellidos = auditorObj?.apellidos || "";
+      let auditorNombre = `${auditorNombres} ${auditorApellidos}`.trim();
+      if (!auditorNombre && auditorObj?.id === 9) {
+        auditorNombre = "Administrador";
+      } else if (!auditorNombre) {
+        auditorNombre = "Diana Auditora";
+      }
+
+      const evalControl = Array.isArray(v.eval_control_docente)
+        ? v.eval_control_docente[0]
+        : (v.eval_control_docente || null);
+      const evalAcademica = Array.isArray(v.eval_academica_detalle)
+        ? v.eval_academica_detalle[0]
+        : (v.eval_academica_detalle || null);
+      const evalAsistencia = Array.isArray(v.eval_asistencia)
+        ? v.eval_asistencia[0]
+        : (v.eval_asistencia || null);
+      const evalGuia = Array.isArray(v.eval_guia_practica)
+        ? v.eval_guia_practica[0]
+        : (v.eval_guia_practica || null);
+
+      const hasEvidence = v.evidencias_fotos && v.evidencias_fotos.length > 0;
+      const hasTeacherSignature = v.firma_docente_b64 && v.firma_docente_b64.trim() !== "";
+      const step = v.ultimo_paso_completado || 1;
+
+      let effectiveEstadoId = v.estado_id;
+      if (step < 7) {
+        effectiveEstadoId = 2; // En progreso
+      } else {
+        if (!hasTeacherSignature) {
+          effectiveEstadoId = 1; // Pendiente
+        } else {
+          effectiveEstadoId = hasEvidence ? 3 : 4; // Completada u Observada
+        }
+      }
+
+      const aulasObj: any = Array.isArray(v.aulas) ? v.aulas[0] : v.aulas;
+      const asignaturasObj: any = Array.isArray(v.asignaturas) ? v.asignaturas[0] : v.asignaturas;
+      const sedesObj: any = Array.isArray(v.sedes) ? v.sedes[0] : v.sedes;
+
+      return {
+        id: v.id.toString(),
+        aula: aulasObj?.nombre || "Aula no asignada",
+        laboratorio: aulasObj?.nombre || "",
+        asignatura: asignaturasObj?.nombre || "Asignatura no asignada",
+        docenteNombre,
+        docenteId: docenteObj?.id?.toString() || "",
+        auditorNombre,
+        sedeFilial: sedesObj?.nombre || "Sede no asignada",
+        ciclo: v.ciclo || "",
+        turno: v.turno || "",
+        fechaVisita: formatDateDisplay(v.fecha_visita),
+        horaInicio: formatTimeDisplay(v.hora_inicio_real) || (v.turno === "Noche" ? "18:30" : v.turno === "Tarde" ? "14:00" : "08:00"),
+        horaTermino: formatTimeDisplay(v.hora_termino_real) || (v.turno === "Noche" ? "20:00" : v.turno === "Tarde" ? "15:30" : "09:30"),
+        estado: mapEstado(effectiveEstadoId),
+        semanaNo: v.semana_nro?.toString() || "",
+        campoFormativo: v.campo_formativo || "Ingeniería de Software / Tecnologías de la Información",
+        horasPracticaTeoria: v.horas_teoria_practica || (v.turno === "Noche" ? "Teoría y Práctica Integrada" : "Práctica de Laboratorio"),
+        requerimientosSolicitados: v.requerimientos_solicitados || "",
+        firmaDocenteUrl: v.firma_docente_b64 || "",
+        firmaAuditorUrl: v.firma_auditor_b64 || "",
+        evidenciasFotos: v.evidencias_fotos || [],
+        evalControl,
+        evalAcademica,
+        evalAsistencia,
+        evalGuia,
+      };
+    } catch (err) {
+      console.error("Error fetching complete visit:", err);
+      return null;
+    }
+  };
+
+  const handleVerDetalles = async (visitaId: string) => {
+    setLoadingPdfId(visitaId);
+    try {
+      const record = await fetchCompleteVisit(visitaId);
+      if (record) {
+        setSelectedAudit(record);
+        setIsPdfModalOpen(true);
+      }
+    } finally {
+      setLoadingPdfId(null);
+    }
+  };
+
+  const handleDescargarPDF = async (visitaId: string) => {
+    setDownloadingPdfId(visitaId);
+    try {
+      const record = await fetchCompleteVisit(visitaId);
+      if (record) {
+        setTempAuditToDownload(record);
+      }
+    } finally {
+      setDownloadingPdfId(null);
+    }
+  };
+
+  const getReportData = (audit: any) => {
+    const ec = audit.evalControl;
+    const ea = audit.evalAcademica;
+    const eas = audit.evalAsistencia;
+    const eg = audit.evalGuia;
+
+    const parsedAsistencia = parseAsistenciaObs(eas?.observaciones || "");
+
+    return {
+      fechaVisita: audit.fechaVisita,
+      horaInicio: audit.horaInicio,
+      horaTermino: audit.horaTermino,
+      sedeFilial: audit.sedeFilial,
+      ciclo: audit.ciclo,
+      turno: audit.turno,
+      asignatura: audit.asignatura,
+      campoFormativo: audit.campoFormativo,
+      semanaNo: audit.semanaNo,
+      horaPracticaTeoria: audit.horasPracticaTeoria,
+      lugarVisita: audit.aula,
+
+      // Sección 1: Control Docente
+      docenteNombre: audit.docenteNombre,
+      docentePresente: mapPresente(ec?.presente_id),
+      horarioProgramado: mapHorario(ec?.horario_id),
+      interaccion: mapInteraccion(ec?.interaccion_id),
+      actividad: ec?.actividad_detalle || "",
+      obs1: ec?.observaciones || "",
+
+      // Sección 2: Material Aula Virtual
+      materialCargado: mapCumple(ea?.material_cumple_id),
+      obs2: ea?.obs_material || "",
+
+      // Sección 3: Asistencia
+      asistenciaAmbiente: mapAmbienteCumple(eas?.ambiente_cumple_id),
+      asistenciaAmbienteObs: parsedAsistencia.alumnosAmbiente !== "" ? `${parsedAsistencia.alumnosAmbiente} alumnos` : "",
+      asistenciaIntranet: mapAmbienteCumple(eas?.intranet_cumple_id),
+      asistenciaIntranetObs: parsedAsistencia.alumnosIntranet !== "" ? `${parsedAsistencia.alumnosIntranet} alumnos` : "",
+      obs3: parsedAsistencia.observaciones,
+
+      // Sección 4: Avance Silábico
+      silaboCoincide: mapCumple(ea?.silabo_coincide_actual_id),
+      temaAnteriorCoincide: mapCumple(ea?.silabo_coincide_anterior_id),
+      ingresoSilaboVirtual: mapCumple(ea?.silabo_virtual_id),
+      obs4: ea?.obs_avance_silabico || "",
+
+      // Sección 5: Guía de Práctica
+      guiaPractica: mapCumpleTriple(eg?.cumple_tema_id),
+      logroMedir: mapCumpleTriple(eg?.evidencia_logro_id),
+      rubricaEvaluacion: mapCumpleTriple(eg?.cuenta_rubrica_id),
+      obs5: eg?.observaciones || "",
+
+      // Pie del reporte
+      responsableActividad: audit.auditorNombre || "",
+      requerimientosSolicitados: audit.requerimientosSolicitados,
+      firmaDocenteUrl: audit.firmaDocenteUrl,
+      firmaResponsableUrl: audit.firmaAuditorUrl || (() => {
+        if (typeof window !== "undefined" && user?.id) {
+          const localSig = localStorage.getItem(`sivac_signature_user_${user.id}`);
+          if (localSig && user.nombre && audit.auditorNombre.toLowerCase().includes(user.nombre.toLowerCase())) {
+            return localSig;
+          }
+        }
+        return "";
+      })(),
+      evidenciasFotos: audit.evidenciasFotos || [],
+    };
+  };
 
   // --- Cargar visitas desde Supabase ---
   const fetchVisitas = React.useCallback(async () => {
@@ -65,6 +319,9 @@ export default function VisitasPage() {
           semana_nro,
           estado_id,
           sede_id,
+          auditor_id,
+          ultimo_paso_completado,
+          firma_docente_b64,
           requerimientos_solicitados,
           sedes(id, nombre),
           aulas(nombre),
@@ -73,9 +330,11 @@ export default function VisitasPage() {
         `)
         .is("deleted_at", null);
 
-      // Los auditores solo pueden ver sus propias visitas creadas
+      // Los auditores solo pueden ver sus propias visitas creadas, y los docentes las asignadas
       if (user.rol === "Auditor") {
         query = query.eq("auditor_id", parseInt(user.id, 10));
+      } else if (user.rol === "Docente") {
+        query = query.eq("docente_id", parseInt(user.id, 10));
       }
 
       const { data: dbVisits, error } = await query.order("id", { ascending: false });
@@ -89,11 +348,19 @@ export default function VisitasPage() {
       if (dbVisits) {
         const mappedVisits: Visit[] = dbVisits.map((item: any) => {
           const hasEvidence = item.evidencias_fotos && item.evidencias_fotos.length > 0;
+          const hasTeacherSignature = item.firma_docente_b64 && item.firma_docente_b64.trim() !== "";
+          const step = item.ultimo_paso_completado || 1;
 
-          // Si la visita está completada o observada, su estado real depende de la presencia de evidencia
+          // Determinar estado de forma dinámica
           let effectiveEstadoId = item.estado_id;
-          if (item.estado_id === 3 || item.estado_id === 4) {
-            effectiveEstadoId = hasEvidence ? 3 : 4;
+          if (step < 7) {
+            effectiveEstadoId = 2; // En progreso
+          } else {
+            if (!hasTeacherSignature) {
+              effectiveEstadoId = 1; // Pendiente
+            } else {
+              effectiveEstadoId = hasEvidence ? 3 : 4; // Completada u Observada
+            }
           }
 
           let status: "green" | "yellow" | "gray" | "red" = "gray";
@@ -122,6 +389,7 @@ export default function VisitasPage() {
             semana: item.semana_nro || 1,
             hasEvidence: !!hasEvidence,
             estadoId: effectiveEstadoId || 1,
+            auditorId: item.auditor_id || null,
           };
         });
 
@@ -140,13 +408,13 @@ export default function VisitasPage() {
     try {
       const { error } = await supabase
         .from("visitas")
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq("id", parseInt(id, 10));
 
       if (error) {
         alert("No se pudo eliminar la visita: " + error.message);
       } else {
-        setAllVisits((prev) => prev.filter((v) => v.id !== id));
+        setAllVisits((prev) => prev.filter((v) => Number(v.id) !== Number(id)));
       }
     } catch (err) {
       console.error("Error al eliminar la visita:", err);
@@ -412,7 +680,11 @@ export default function VisitasPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <div className="flex items-center justify-center gap-3">
-                        {visit.status === "gray" && (
+                        {(ROL_ACTIVO === "Docente" || (user && Number(visit.auditorId) !== Number(user.id))) && (visit.status === "gray" || visit.status === "yellow") && (
+                          <span className="text-sivac-muted text-14 font-medium">—</span>
+                        )}
+
+                        {visit.status === "gray" && ROL_ACTIVO !== "Docente" && user && Number(visit.auditorId) === Number(user.id) && (
                           /* Pendiente */
                           <button
                             type="button"
@@ -424,7 +696,7 @@ export default function VisitasPage() {
                           </button>
                         )}
 
-                        {visit.status === "yellow" && (
+                        {visit.status === "yellow" && ROL_ACTIVO !== "Docente" && user && Number(visit.auditorId) === Number(user.id) && (
                           /* En progreso */
                           <>
                             <button
@@ -449,30 +721,44 @@ export default function VisitasPage() {
                         {(visit.status === "green" || visit.status === "red") && (
                           /* Completada u Observada */
                           <>
+                            {ROL_ACTIVO !== "Docente" && (
+                              <button
+                                type="button"
+                                onClick={() => router.push(`/admin/evidencias?visitaId=${visit.id}`)}
+                                className="p-1.5 text-sivac-muted hover:text-sivac-indigo transition-colors rounded-lg hover:bg-sivac-bg-secondary/40 cursor-pointer"
+                                title="Ver evidencias fotográficas"
+                              >
+                                <Camera size={18} strokeWidth={2} />
+                              </button>
+                            )}
                             <button
                               type="button"
-                              onClick={() => router.push(`/admin/evidencias?visitaId=${visit.id}`)}
-                              className="p-1.5 text-sivac-muted hover:text-sivac-indigo transition-colors rounded-lg hover:bg-sivac-bg-secondary/40 cursor-pointer"
-                              title="Ver evidencias fotográficas"
-                            >
-                              <Camera size={18} strokeWidth={2} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => router.push(`/admin/reportes`)}
-                              className="p-1.5 text-sivac-muted hover:text-sivac-blue transition-colors rounded-lg hover:bg-sivac-bg-secondary/40 cursor-pointer"
+                              onClick={() => handleVerDetalles(visit.id)}
+                              disabled={loadingPdfId !== null || downloadingPdfId !== null}
+                              className="p-1.5 text-sivac-muted hover:text-sivac-blue transition-colors rounded-lg hover:bg-sivac-bg-secondary/40 cursor-pointer disabled:opacity-40"
                               title="Ver detalles"
                             >
-                              <Eye size={18} strokeWidth={2} />
+                              {loadingPdfId === visit.id ? (
+                                <Loader2 size={18} className="animate-spin text-sivac-blue" />
+                              ) : (
+                                <Eye size={18} strokeWidth={2} />
+                              )}
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => router.push(`/admin/reportes`)}
-                              className="p-1.5 text-sivac-muted hover:text-sivac-indigo-light transition-colors rounded-lg hover:bg-sivac-bg-secondary/40 cursor-pointer"
-                              title="Descargar PDF"
-                            >
-                              <FileDown size={18} strokeWidth={2} />
-                            </button>
+                            {ROL_ACTIVO !== "Docente" && (
+                              <button
+                                type="button"
+                                onClick={() => handleDescargarPDF(visit.id)}
+                                disabled={loadingPdfId !== null || downloadingPdfId !== null}
+                                className="p-1.5 text-sivac-muted hover:text-sivac-indigo-light transition-colors rounded-lg hover:bg-sivac-bg-secondary/40 cursor-pointer disabled:opacity-40"
+                                title="Descargar PDF"
+                              >
+                                {downloadingPdfId === visit.id ? (
+                                  <Loader2 size={18} className="animate-spin text-sivac-indigo" />
+                                ) : (
+                                  <FileDown size={18} strokeWidth={2} />
+                                )}
+                              </button>
+                            )}
                             {ROL_ACTIVO === "Admin" && (
                               <button
                                 type="button"
@@ -547,6 +833,146 @@ export default function VisitasPage() {
           </div>
         </div>
       </div>
+
+      {/* Elemento oculto para descarga directa de PDF */}
+      {tempAuditToDownload && (
+        <div 
+          style={{
+            position: "fixed",
+            left: "-9999px",
+            top: "-9999px",
+            width: "210mm",
+            overflow: "hidden",
+            pointerEvents: "none"
+          }}
+        >
+          <div 
+            id={`pdf-download-element-${tempAuditToDownload.id}`}
+            className="pdf-capture-wrapper"
+            style={{
+              width: "210mm",
+              backgroundColor: "#ffffff",
+              color: "#000000",
+              opacity: 1
+            }}
+          >
+            <FormatoVisitaUTP {...getReportData(tempAuditToDownload)} />
+          </div>
+        </div>
+      )}
+
+      {/* Modal Visor de PDF (Glassmorphism / Backdrop Blur) */}
+      {isPdfModalOpen && selectedAudit && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn text-sivac-light">
+          <div className="bg-sivac-bg-surface/95 border border-white/10 rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl relative backdrop-blur-xl">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-sivac-green animate-pulse" />
+                <h3 className="text-14 font-bold font-poppins text-sivac-heading uppercase tracking-wide">
+                  Visor de PDF - Visita {selectedAudit.id}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPdfModalOpen(false);
+                    setSelectedAudit(null);
+                  }}
+                  className="p-1.5 hover:bg-white/10 rounded-lg text-sivac-muted hover:text-sivac-light transition-colors cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body - PDF content scrollable */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 bg-[#1e1e1e] scrollbar-thin">
+              <div id="pdf-modal-content" className="mx-auto max-w-[800px] bg-[#1e1e1e]">
+                <FormatoVisitaUTP {...getReportData(selectedAudit)} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+// --- Helpers para detalle de visitas ---
+const parseAsistenciaObs = (rawObs: string) => {
+  if (!rawObs) return { alumnosAmbiente: "" as number | "", alumnosIntranet: "" as number | "", observaciones: "" };
+  const match = rawObs.match(/^\[alumnos_ambiente:(\d*),alumnos_intranet:(\d*)\]([\s\S]*)$/);
+  if (match) {
+    return {
+      alumnosAmbiente: match[1] === "" ? "" : parseInt(match[1], 10),
+      alumnosIntranet: match[2] === "" ? "" : parseInt(match[2], 10),
+      observaciones: match[3].trim()
+    };
+  }
+  return { alumnosAmbiente: "" as number | "", alumnosIntranet: "" as number | "", observaciones: rawObs };
+};
+
+const mapPresente = (id: number | null | undefined): "SI" | "NO" | "" => {
+  if (id === 4) return "SI";
+  if (id === 5) return "NO";
+  return "";
+};
+
+const mapHorario = (id: number | null | undefined): "Cumple" | "No Cumple" | "" => {
+  if (id === 6) return "Cumple";
+  if (id === 7) return "No Cumple";
+  return "";
+};
+
+const mapInteraccion = (id: number | null | undefined): "SI" | "NO" | "" => {
+  if (id === 1) return "SI";
+  if (id === 2) return "NO";
+  return "";
+};
+
+const mapCumple = (id: number | null | undefined): "CUMPLE" | "NO CUMPLE" | "" => {
+  if (id === 1) return "CUMPLE";
+  if (id === 2) return "NO CUMPLE";
+  return "";
+};
+
+const mapCumpleTriple = (id: number | null | undefined): "CUMPLE" | "NO CUMPLE" | "NO APLICA" | "" => {
+  if (id === 1) return "CUMPLE";
+  if (id === 2) return "NO CUMPLE";
+  if (id === 3) return "NO APLICA";
+  return "";
+};
+
+const mapAmbienteCumple = (id: number | null | undefined): "Cumple" | "No cumple" | "" => {
+  if (id === 1) return "Cumple";
+  if (id === 2) return "No cumple";
+  return "";
+};
+
+const formatDateDisplay = (dateStr: string | null | undefined): string => {
+  if (!dateStr) return "—";
+  try {
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
+  } catch {
+    return dateStr || "—";
+  }
+};
+
+const formatTimeDisplay = (timeStr: string | null | undefined): string => {
+  if (!timeStr) return "";
+  return timeStr.substring(0, 5);
+};
+
+const mapEstado = (estadoId: number | null | undefined): "Cumple" | "Pendiente" | "En progreso" | "Observada" => {
+  if (estadoId === 1) return "Pendiente";
+  if (estadoId === 2) return "En progreso";
+  if (estadoId === 3) return "Cumple";
+  return "Observada";
+};

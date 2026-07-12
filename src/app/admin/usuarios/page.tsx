@@ -206,6 +206,17 @@ export default function UsuariosPage() {
       }
 
       // 2. Insertar perfil en la tabla de usuarios pública
+      const passwordToHash = "Sivac2025!";
+      let passwordHash = "Sivac2025!";
+      try {
+        const msgBuffer = new TextEncoder().encode(passwordToHash);
+        const hashBuffer = await window.crypto.subtle.digest("SHA-256", msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        passwordHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+      } catch (e) {
+        console.error("Error hashing password:", e);
+      }
+
       const { error } = await supabase
         .from("usuarios")
         .insert([
@@ -215,7 +226,7 @@ export default function UsuariosPage() {
             apellidos: newApellidos,
             codigo_utp: newCodigoUtp.trim(),
             rol_id: parseInt(newRolId),
-            password_hash: "Sivac2025!", // Satisfacer restricción NOT NULL
+            password_hash: passwordHash, // Guardar la clave encriptada/hasheada
           }
         ]);
 

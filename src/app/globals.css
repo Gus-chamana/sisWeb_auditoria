@@ -104,11 +104,88 @@
   }
 }
 
+/* Estilos del Reporteador en Pantalla (Imitación A4) */
+.print-sheet {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 210mm;
+  height: 297mm; /* Full A4 height */
+  padding: 8mm 12mm; /* Clean margins inside the sheet */
+  margin: 0 auto 10mm auto; /* Centered horizontally, gap between pages on screen */
+  box-sizing: border-box;
+  background: white;
+  overflow: hidden;
+  font-family: Arial, Helvetica, sans-serif !important; /* Explicit font family to prevent html2canvas serif fallback */
+}
+
+.print-sheet.justify-start {
+  justify-content: flex-start;
+}
+
+/* Quitar márgenes de separación al capturar PDF */
+.pdf-capture-wrapper {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: white !important;
+  overflow: hidden !important;
+  height: auto !important;
+}
+
+.pdf-capture-wrapper .print-sheet {
+  margin: 0 !important;
+  margin-top: 0 !important;
+  height: 296mm !important; /* Ligeramente menor a 297mm para evitar desbordes por redondeo de subpíxeles */
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.pdf-capture-wrapper .print-sheet:not(:last-child) {
+  page-break-after: always !important;
+  break-after: page !important;
+}
+
+/* Asegurar bordes negros sólidos y delgados en el reporte */
+.print-sheet table,
+.print-sheet th,
+.print-sheet td,
+.print-sheet .border-black {
+  border-color: #000000 !important;
+}
+
+/* Ajustar el grosor de las líneas para evitar líneas gruesas en html2canvas */
+.print-sheet .border,
+.print-sheet .border-collapse {
+  border-width: 0.6px !important;
+}
+.print-sheet .border-t {
+  border-top-width: 0.6px !important;
+}
+.print-sheet .border-b {
+  border-bottom-width: 0.6px !important;
+}
+.print-sheet .border-l {
+  border-left-width: 0.6px !important;
+}
+.print-sheet .border-r {
+  border-right-width: 0.6px !important;
+}
+.print-sheet th,
+.print-sheet td {
+  border-width: 0.6px !important;
+}
+
 /* Estilos de Impresión Oficiales */
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm 12mm !important;
+    margin: 0 !important;
+  }
+
+  /* Forzar colores de fondo y bordes exactos */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .no-print,
@@ -132,10 +209,7 @@
   #__next,
   .min-h-screen,
   .pl-280,
-  main,
-  .flex,
-  .flex-col,
-  .flex-1 {
+  main {
     display: block !important;
     width: auto !important;
     height: auto !important;
@@ -150,22 +224,46 @@
     box-shadow: none !important;
   }
 
+  /* Reset all layout divs to allow height expansion and multi-page printing */
+  div:has(.print-sheet) {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
   /* Force print sheet dimensions and center alignment */
   .print-sheet {
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
-    width: 186mm !important; /* 210mm - 24mm margins */
-    height: 277mm !important; /* 297mm - 20mm margins */
-    margin: 0 auto !important;
-    padding: 0 !important;
+    width: 210mm !important; /* Full A4 width */
+    height: 297mm !important; /* Full A4 height */
+    padding: 8mm 12mm !important; /* Margins inside the page */
+    margin: 0 !important; /* No margins during print to prevent shifts */
     box-sizing: border-box !important;
-    page-break-after: always !important;
-    break-after: page !important;
     background: white !important;
     border: none !important;
     box-shadow: none !important;
     overflow: hidden !important;
+    font-family: Arial, Helvetica, sans-serif !important; /* Explicit font family */
+  }
+
+  /* Allow sheets to align content to the top instead of space-between */
+  .print-sheet.justify-start {
+    justify-content: flex-start !important;
+  }
+
+  /* Break pages only if there's another sheet following */
+  .print-sheet:not(:last-child) {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  /* Prevent trailing page break on wrapper divs and last sheets */
+  div[id^="report-card-"]:last-of-type,
+  .print\:break-after-page:last-child,
+  .print-sheet:last-child {
+    break-after: auto !important;
+    page-break-after: auto !important;
   }
 }
 

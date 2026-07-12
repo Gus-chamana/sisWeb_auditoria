@@ -62,6 +62,7 @@ interface AuditRecord {
   requerimientosSolicitados: string;
   firmaDocenteUrl: string;
   firmaAuditorUrl: string;
+  evidenciasFotos?: { id: number; url_foto: string; seccion: string }[];
 
   // Detalle de evaluaciones (se cargan bajo demanda)
   evalControl?: {
@@ -210,7 +211,7 @@ export default function ReportesPage() {
     setLoadingAudits(true);
     try {
       // Traer todas las visitas con sus relaciones
-      const { data: visitas, error } = await supabase
+      let query = supabase
         .from("visitas")
         .select(`
           id,
@@ -226,6 +227,7 @@ export default function ReportesPage() {
           requerimientos_solicitados,
           firma_docente_b64,
           firma_auditor_b64,
+          ultimo_paso_completado,
           sedes(id, nombre),
           aulas(nombre),
           asignaturas(nombre),
@@ -235,10 +237,17 @@ export default function ReportesPage() {
           eval_academica_detalle(material_cumple_id, obs_material, silabo_coincide_actual_id, silabo_coincide_anterior_id, silabo_virtual_id, obs_avance_silabico),
           eval_asistencia(ambiente_cumple_id, intranet_cumple_id, observaciones),
           eval_guia_practica(cumple_tema_id, evidencia_logro_id, cuenta_rubrica_id, observaciones),
-          evidencias_fotos(id)
+          evidencias_fotos(id, url_foto, seccion)
         `)
-        .is("deleted_at", null)
-        .order("id", { ascending: false });
+        .is("deleted_at", null);
+
+      if (currentUser?.rol === "Auditor") {
+        query = query.eq("auditor_id", parseInt(currentUser.id, 10));
+      } else if (currentUser?.rol === "Docente") {
+        query = query.eq("docente_id", parseInt(currentUser.id, 10));
+      }
+
+      const { data: visitas, error } = await query.order("id", { ascending: false });
 
       if (error) {
         console.error("Error al cargar visitas para reportes:", error);
@@ -281,9 +290,18 @@ export default function ReportesPage() {
           : (v.eval_guia_practica || null);
 
         const hasEvidence = v.evidencias_fotos && v.evidencias_fotos.length > 0;
+        const hasTeacherSignature = v.firma_docente_b64 && v.firma_docente_b64.trim() !== "";
+        const step = v.ultimo_paso_completado || 1;
+
         let effectiveEstadoId = v.estado_id;
-        if (v.estado_id === 3 || v.estado_id === 4) {
-          effectiveEstadoId = hasEvidence ? 3 : 4;
+        if (step < 7) {
+          effectiveEstadoId = 2; // En progreso
+        } else {
+          if (!hasTeacherSignature) {
+            effectiveEstadoId = 1; // Pendiente
+          } else {
+            effectiveEstadoId = hasEvidence ? 3 : 4; // Completada u Observada
+          }
         }
 
         return {
@@ -307,6 +325,7 @@ export default function ReportesPage() {
           requerimientosSolicitados: v.requerimientos_solicitados || "",
           firmaDocenteUrl: v.firma_docente_b64 || "",
           firmaAuditorUrl: v.firma_auditor_b64 || "",
+          evidenciasFotos: v.evidencias_fotos || [],
           evalControl,
           evalAcademica,
           evalAsistencia,
@@ -461,18 +480,32 @@ export default function ReportesPage() {
         ? `Ficha_Visita_${audit.sedeFilial.split(" - ")[0]}_${audit.aula}_${audit.fechaVisita.replace(/\//g, "-")}.pdf`
         : `Reporte_Visita_${id}.pdf`;
 
+      // Clonar y envolver para quitar márgenes y sombreado en PDF
+      const clone = element.cloneNode(true) as HTMLElement;
+      clone.style.boxShadow = "none";
+      clone.style.borderRadius = "0";
+      clone.style.margin = "0";
+      clone.style.padding = "0";
+      clone.style.display = "block";
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "pdf-capture-wrapper";
+      wrapper.appendChild(clone);
+
       const opt = {
         margin: 0,
         filename: filename,
-        image: { type: "jpeg", quality: 1.0 },
-        html2canvas: { scale: 3, useCORS: true, letterRendering: true },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        image: { type: "jpeg" as const, quality: 1.0 },
+        html2canvas: { scale: 3, useCORS: true },
+        jsPDF: { unit: "mm" as const, format: "a4" as const, orientation: "portrait" as const },
+        pagebreak: { mode: ["css" as const, "legacy" as const] },
       };
 
-      html2pdf().from(element).set(opt).save();
+      html2pdf().from(wrapper).set(opt).save();
     } else {
       // Descarga conjunta en un único archivo PDF multipágina
       const container = document.createElement("div");
+      container.className = "pdf-capture-wrapper";
 
       for (const id of checkedAuditIds) {
         const element = document.getElementById(`report-card-${id}`);
@@ -495,10 +528,10 @@ export default function ReportesPage() {
       const opt = {
         margin: 0,
         filename: filename,
-        image: { type: "jpeg", quality: 1.0 },
-        html2canvas: { scale: 3, useCORS: true, letterRendering: true },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: { mode: ["css", "legacy"] }, // Respeta break-after: page y estilos .print-sheet
+        image: { type: "jpeg" as const, quality: 1.0 },
+        html2canvas: { scale: 3, useCORS: true },
+        jsPDF: { unit: "mm" as const, format: "a4" as const, orientation: "portrait" as const },
+        pagebreak: { mode: ["css" as const, "legacy" as const] },
       };
 
       html2pdf().from(container).set(opt).save();
@@ -573,6 +606,7 @@ export default function ReportesPage() {
         }
         return getPredefinedSignature(audit.auditorNombre);
       })(),
+      evidenciasFotos: audit.evidenciasFotos || [],
     };
   };
 

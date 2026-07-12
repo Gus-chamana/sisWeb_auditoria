@@ -44,6 +44,7 @@ export default function InspeccionesPage() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [showEvidenceSuccessModal, setShowEvidenceSuccessModal] = useState(false);
+  const [uploadSection, setUploadSection] = useState<string>("Inicio de Clases");
 
   // Estado global para todo el formulario de auditoría de 7 pasos
   const [formData, setFormData] = useState({
@@ -159,8 +160,46 @@ export default function InspeccionesPage() {
         if (resTurnos.data) setTurnos(resTurnos.data);
         if (resAulas.data) setAulas(resAulas.data);
         if (resAsignaturas.data) setAsignaturas(resAsignaturas.data);
+
+        // --- Crear visita pendiente de inmediato si no hay idParam en la URL ---
+        const params = new URLSearchParams(window.location.search);
+        const idParam = params.get("visitaId");
+        if (!idParam) {
+          let auditorId = 2;
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user?.email) {
+            const { data: dbUser } = await supabase
+              .from("usuarios")
+              .select("id")
+              .eq("username", session.user.email)
+              .maybeSingle();
+            if (dbUser) {
+              auditorId = dbUser.id;
+            }
+          }
+
+          const { data: newVisita, error } = await supabase
+            .from("visitas")
+            .insert({
+              auditor_id: auditorId,
+              fecha_visita: new Date().toISOString().split("T")[0],
+              hora_inicio_real: getLocalTimeString(),
+              estado_id: 2, // En progreso (No más Pendiente al iniciar)
+              ultimo_paso_completado: 1,
+              ciclo: params.get("ciclo") || "2026-I",
+              turno: params.get("turno") || "Noche",
+              semana_nro: parseInt(params.get("semanaNo") || "12", 10),
+            })
+            .select("id")
+            .single();
+
+          if (!error && newVisita) {
+            setVisitaId(newVisita.id);
+            window.history.replaceState(null, "", `?visitaId=${newVisita.id}`);
+          }
+        }
       } catch (err) {
-        console.error("Error al cargar catálogos:", err);
+        console.error("Error al cargar catálogos e inicializar visita:", err);
       }
     }
     loadData();
@@ -323,12 +362,16 @@ export default function InspeccionesPage() {
           sId = newSede?.id;
         }
 
-        const { data: Aula } = await supabase
-          .from("aulas")
-          .select("id")
-          .eq("nombre", formData.aula)
-          .maybeSingle();
-        let aId = Aula?.id;
+        let aId = null;
+        if (sId) {
+          const { data: Aula } = await supabase
+            .from("aulas")
+            .select("id")
+            .eq("nombre", formData.aula)
+            .eq("sede_id", sId)
+            .maybeSingle();
+          aId = Aula?.id;
+        }
         if (!aId && sId) {
           const { data: newAula } = await supabase
             .from("aulas")
@@ -440,8 +483,8 @@ export default function InspeccionesPage() {
       }
 
       if (step === 4) {
-        const ambienteId = formData.alumnosAmbiente !== "" ? 1 : 2;
-        const intranetId = formData.alumnosIntranet !== "" ? 1 : 2;
+        const ambienteId = formData.alumnosAmbiente !== "" ? 1 : null;
+        const intranetId = formData.alumnosIntranet !== "" ? 1 : null;
         const encodedObs = `[alumnos_ambiente:${formData.alumnosAmbiente},alumnos_intranet:${formData.alumnosIntranet}]${formData.observacionesAsistencia}`.trim();
         await supabase.from("eval_asistencia").upsert({
           visita_id: currentVisitaId,
@@ -487,7 +530,16 @@ export default function InspeccionesPage() {
     }
   };
 
-  const finalizeInspection = async (completed: boolean) => {
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const finalizeInspection = async (completed: boolean, overrideHasEvidences?: boolean) => {
     if (!visitaId) return;
     try {
       const { createClient } = await import("@/utils/supabase/client");
@@ -499,12 +551,20 @@ export default function InspeccionesPage() {
         auditorFirma = localStorage.getItem(`sivac_signature_user_${user.id}`) || "";
       }
 
+      const hasTeacherSignature = formData.firmaDocenteUrl && formData.firmaDocenteUrl.trim() !== "";
+      const actualHasEvidences = overrideHasEvidences !== undefined ? overrideHasEvidences : hasEvidences;
+
+      let finalEstadoId = 2; // En progreso
+      if (completed) {
+        finalEstadoId = hasTeacherSignature ? (actualHasEvidences ? 3 : 4) : 1;
+      }
+
       await supabase
         .from("visitas")
         .update({
-          estado_id: completed ? 3 : 2, // 3: Completada, 2: En Progreso
+          estado_id: finalEstadoId,
           ultimo_paso_completado: 7,
-          firma_docente_b64: formData.firmaDocenteUrl,
+          firma_docente_b64: formData.firmaDocenteUrl || null,
           firma_auditor_b64: auditorFirma || null,
           hora_termino_real: getLocalTimeString(),
         })
@@ -536,13 +596,8 @@ export default function InspeccionesPage() {
           setValidationError("Por favor, complete todos los campos");
           return false;
         }
-        if (formData.docentePresente === "Ausente") {
-          if (!formData.observacionesAusencia.trim()) {
-            setValidationError("Por favor, complete todos los campos");
-            return false;
-          }
-        } else {
-          if (!formData.horarioProgramado || !formData.interaccion || !formData.actividadDocente.trim()) {
+        if (formData.docentePresente === "Presente") {
+          if (!formData.horarioProgramado || !formData.interaccion) {
             setValidationError("Por favor, complete todos los campos");
             return false;
           }
@@ -555,9 +610,21 @@ export default function InspeccionesPage() {
         }
         break;
       case 4:
-        if (formData.alumnosAmbiente === "" || formData.alumnosIntranet === "") {
-          setValidationError("Por favor, complete todos los campos");
-          return false;
+        if (formData.modalidad === "Virtual") {
+          if (formData.alumnosIntranet === "") {
+            setValidationError("Por favor, complete todos los campos");
+            return false;
+          }
+        } else if (formData.modalidad === "Presencial") {
+          if (formData.alumnosAmbiente === "") {
+            setValidationError("Por favor, complete todos los campos");
+            return false;
+          }
+        } else {
+          if (formData.alumnosAmbiente === "" || formData.alumnosIntranet === "") {
+            setValidationError("Por favor, complete todos los campos");
+            return false;
+          }
         }
         break;
       case 5:
@@ -573,10 +640,7 @@ export default function InspeccionesPage() {
         }
         break;
       case 7:
-        if (!formData.firmaDocenteUrl) {
-          setValidationError("Por favor, complete todos los campos");
-          return false;
-        }
+        // La firma del docente es opcional para poder finalizar la visita (si falta, queda como Pendiente)
         break;
     }
     setValidationError("");
@@ -590,7 +654,10 @@ export default function InspeccionesPage() {
       setCurrentStep((prev) => prev + 1);
     } else {
       // Guardar / Finalizar auditoría
-      if (!hasEvidences) {
+      const missingEvidence = !hasEvidences;
+      const missingSignature = !formData.firmaDocenteUrl;
+
+      if (missingEvidence || missingSignature) {
         setShowConfirmModal(true);
       } else {
         await finalizeInspection(true);
@@ -799,7 +866,7 @@ export default function InspeccionesPage() {
       case 3:
         return <Paso3MaterialVirtual formData={formData} updateFormData={updateFormData} />;
       case 4:
-        return <Paso4Asistencia formData={formData} updateFormData={updateFormData} />;
+        return <Paso4Asistencia formData={formData} updateFormData={updateFormData} modalidad={formData.modalidad} />;
       case 5:
         return <Paso5AvanceSilabico formData={formData} updateFormData={updateFormData} />;
       case 6:
@@ -951,14 +1018,30 @@ export default function InspeccionesPage() {
             </div>
 
             {/* Banner de advertencia condicional */}
-            {finishedWithoutEvidence && (
-              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-left">
-                <AlertTriangle size={18} className="text-amber-400 shrink-0 mt-0.5" />
-                <p className="text-12 leading-relaxed text-amber-400/90">
-                  <span className="font-bold">Recuerda:</span> Falta subir la evidencia fotográfica de esta inspección. No olvides completarla más tarde.
-                </p>
-              </div>
-            )}
+            {finishedWithoutEvidence && (() => {
+              const missingEvidence = !hasEvidences;
+              const missingSignature = !formData.firmaDocenteUrl;
+
+              let bannerText = "";
+              if (missingEvidence && missingSignature) {
+                bannerText = "Falta registrar la firma de conformidad del docente y subir la evidencia fotográfica de esta inspección. No olvides completarla más tarde.";
+              } else if (missingSignature) {
+                bannerText = "Falta registrar la firma de conformidad del docente de esta inspección. No olvides completarla más tarde.";
+              } else if (missingEvidence) {
+                bannerText = "Falta subir la evidencia fotográfica de esta inspección. No olvides completarla más tarde.";
+              } else {
+                return null;
+              }
+
+              return (
+                <div className="flex items-start gap-3 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-left animate-fadeIn">
+                  <AlertTriangle size={18} className="text-amber-400 shrink-0 mt-0.5" />
+                  <p className="text-12 leading-relaxed text-amber-400/90">
+                    <span className="font-bold">Recuerda:</span> {bannerText}
+                  </p>
+                </div>
+              );
+            })()}
 
             <div className="pt-2">
               <button
@@ -978,54 +1061,77 @@ export default function InspeccionesPage() {
         </div>
       )}
 
-      {/* Modal de Confirmación de Evidencias (Glassmorphism / Backdrop Blur) */}
-      {showConfirmModal && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn text-sivac-light">
-          <div className="bg-sivac-bg-surface/80 border border-white/10 rounded-2xl p-6 sm:p-8 max-w-md w-full space-y-6 shadow-2xl relative backdrop-blur-xl">
-            
-            {/* Warning Icon and Message */}
-            <div className="text-center space-y-4">
-              <div className="w-14 h-14 rounded-full bg-sivac-yellow/15 text-sivac-yellow mx-auto flex items-center justify-center border border-sivac-yellow/30 shrink-0">
-                <Info size={28} className="text-sivac-yellow" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-18 font-bold font-poppins text-sivac-heading leading-tight">
-                  Inspección sin Evidencias
-                </h3>
-                <p className="text-14 leading-relaxed text-sivac-body">
-                  ⚠️ Estás a punto de finalizar la inspección sin evidencias fotográficas adjuntas.
-                </p>
-              </div>
-            </div>
+      {/* Modal de Confirmación de Evidencias y Firmas (Glassmorphism / Backdrop Blur) */}
+      {showConfirmModal && (() => {
+        const missingEvidence = !hasEvidences;
+        const missingSignature = !formData.firmaDocenteUrl;
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowConfirmModal(false);
-                  setShowUploadModal(true);
-                }}
-                className="w-full sm:w-auto h-[44px] px-6 rounded-lg text-13 font-bold bg-sivac-blue hover:bg-blue-700 text-sivac-surface transition-all shadow-lg shadow-sivac-blue/15 cursor-pointer uppercase tracking-wider"
-              >
-                Subir evidencias
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  setShowConfirmModal(false);
-                  setFinishedWithoutEvidence(true);
-                  await finalizeInspection(true);
-                  setShowSuccessModal(true);
-                }}
-                className="w-full sm:w-auto h-[40px] px-5 rounded-lg text-13 font-medium text-sivac-muted hover:text-sivac-heading transition-colors cursor-pointer underline underline-offset-2 decoration-sivac-muted/40 hover:decoration-sivac-heading/60"
-              >
-                Finalizar y subir más tarde
-              </button>
+        let modalTitle = "Confirmar Finalización";
+        let modalText = "Estás a punto de finalizar la inspección.";
+        let secondaryButtonText = "Finalizar y completar después";
+
+        if (missingEvidence && missingSignature) {
+          modalTitle = "Firma y Evidencias Faltantes";
+          modalText = "⚠️ Estás a punto de finalizar la inspección sin la firma de conformidad del docente y sin evidencias fotográficas adjuntas.";
+          secondaryButtonText = "Finalizar y registrar después";
+        } else if (missingSignature) {
+          modalTitle = "Firma del Docente Faltante";
+          modalText = "⚠️ Estás a punto de finalizar la inspección sin la firma de conformidad del docente.";
+          secondaryButtonText = "Finalizar y firmar después";
+        } else if (missingEvidence) {
+          modalTitle = "Inspección sin Evidencias";
+          modalText = "⚠️ Estás a punto de finalizar la inspección sin evidencias fotográficas adjuntas.";
+          secondaryButtonText = "Finalizar y subir más tarde";
+        }
+
+        return (
+          <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn text-sivac-light">
+            <div className="bg-sivac-bg-surface/80 border border-white/10 rounded-2xl p-6 sm:p-8 max-w-md w-full space-y-6 shadow-2xl relative backdrop-blur-xl">
+              
+              {/* Warning Icon and Message */}
+              <div className="text-center space-y-4">
+                <div className="w-14 h-14 rounded-full bg-sivac-yellow/15 text-sivac-yellow mx-auto flex items-center justify-center border border-sivac-yellow/30 shrink-0">
+                  <Info size={28} className="text-sivac-yellow" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-18 font-bold font-poppins text-sivac-heading leading-tight">
+                    {modalTitle}
+                  </h3>
+                  <p className="text-14 leading-relaxed text-sivac-body">
+                    {modalText}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowConfirmModal(false);
+                    setShowUploadModal(true);
+                  }}
+                  className="w-full sm:w-auto h-[44px] px-6 rounded-lg text-13 font-bold bg-sivac-blue hover:bg-blue-700 text-sivac-surface transition-all shadow-lg shadow-sivac-blue/15 cursor-pointer uppercase tracking-wider text-center flex items-center justify-center"
+                >
+                  Subir evidencias
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setShowConfirmModal(false);
+                    setFinishedWithoutEvidence(true);
+                    await finalizeInspection(true);
+                    setShowSuccessModal(true);
+                  }}
+                  className="w-full sm:w-auto h-[40px] px-5 rounded-lg text-13 font-medium text-sivac-muted hover:text-sivac-heading transition-colors cursor-pointer underline underline-offset-2 decoration-sivac-muted/40 hover:decoration-sivac-heading/60 text-center flex items-center justify-center"
+                >
+                  {secondaryButtonText}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Modal de Carga de Evidencias Fotográficas (Glassmorphism) */}
       {showUploadModal && (
@@ -1052,6 +1158,24 @@ export default function InspeccionesPage() {
               <p className="text-13 text-sivac-muted">
                 Adjunta las fotos tomadas durante la inspección académica.
               </p>
+            </div>
+
+            {/* Selector de sección de la foto */}
+            <div className="space-y-2">
+              <label htmlFor="modal-evidence-section" className="text-12 font-bold text-sivac-muted uppercase tracking-wide-06">
+                Tipo / Sección de Evidencia
+              </label>
+              <select
+                id="modal-evidence-section"
+                value={uploadSection}
+                onChange={(e) => setUploadSection(e.target.value)}
+                className="w-full h-[40px] px-3 bg-white/[0.05] border border-white/10 rounded-lg text-13 text-sivac-light focus:outline-none focus:border-sivac-blue cursor-pointer"
+              >
+                <option value="Inicio de Clases" className="bg-sivac-bg-surface text-sivac-light">Inicio de Clases</option>
+                <option value="Desarrollo Temático" className="bg-sivac-bg-surface text-sivac-light">Desarrollo Temático</option>
+                <option value="Uso de Laboratorio" className="bg-sivac-bg-surface text-sivac-light">Uso de Laboratorio</option>
+                <option value="Cierre y Firma" className="bg-sivac-bg-surface text-sivac-light">Cierre y Firma</option>
+              </select>
             </div>
 
             {/* Drag & Drop Zone */}
@@ -1150,12 +1274,17 @@ export default function InspeccionesPage() {
                       const { createClient } = await import("@/utils/supabase/client");
                       const supabase = createClient();
                       for (const file of uploadedFiles) {
+                        const base64Data = await fileToBase64(file);
                         await supabase.from("evidencias_fotos").insert({
                           visita_id: visitaId,
-                          seccion: "General",
-                          url_foto: `/uploads/mock_${file.name}`,
+                          seccion: uploadSection,
+                          url_foto: base64Data,
+                          fecha_captura: new Date().toISOString(),
                         });
                       }
+                      
+                      // Finalizar la inspección con evidencias y la firma del auditor
+                      await finalizeInspection(true, true);
                     } catch (err) {
                       console.error("Error al subir fotos:", err);
                     }

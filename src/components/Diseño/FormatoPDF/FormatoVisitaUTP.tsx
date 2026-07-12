@@ -49,6 +49,7 @@ export interface FormatoVisitaUTPProps {
   requerimientosSolicitados?: string;
   firmaDocenteUrl?: string;
   firmaResponsableUrl?: string;
+  evidenciasFotos?: { id: number; url_foto: string; seccion: string }[];
 }
 
 export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
@@ -89,15 +90,17 @@ export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
     requerimientosSolicitados = "",
     firmaDocenteUrl = "",
     firmaResponsableUrl = "",
+    evidenciasFotos = [],
   } = props;
 
   return (
-    <div className="print-sheet w-full max-w-[210mm] bg-white text-black p-5 mx-auto font-sans flex flex-col justify-between border border-gray-300 shadow-sm print:border-0 print:shadow-none print:p-0 print:m-0 select-none text-[8px] leading-snug">
+    <>
+      <div className="print-sheet w-full max-w-[210mm] bg-white text-black mx-auto font-sans flex flex-col justify-between border border-gray-300 shadow-sm print:border-0 print:shadow-none select-none text-[8px] leading-snug">
       <div>
         {/* ==================== ENCABEZADO ==================== */}
-        <div className="flex items-center justify-between border-b border-black pb-1 mb-2">
+        <div className="grid grid-cols-[30%_40%_30%] items-center border-b border-black pb-1 mb-2">
           {/* Logo UTP */}
-          <div className="flex items-center gap-2 w-[30%]">
+          <div className="flex items-center gap-2">
             <div className="flex items-center justify-center bg-[#C8102E] text-white font-bold px-2 py-0.5 text-[16px] font-sans tracking-tighter">
               UTP
             </div>
@@ -109,7 +112,7 @@ export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
           </div>
 
           {/* Información del Centro */}
-          <div className="text-center w-[50%] flex flex-col items-center">
+          <div className="text-center flex flex-col items-center">
             <div className="font-bold text-[9.5px] tracking-wide text-black uppercase">
               UNIVERSIDAD TECNOLÓGICA DEL PERÚ
             </div>
@@ -125,7 +128,7 @@ export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
           </div>
 
           {/* Espacio derecho vacío para equilibrio visual */}
-          <div className="w-[20%]" />
+          <div className="w-full" />
         </div>
 
         {/* Título de la Visita */}
@@ -427,7 +430,7 @@ export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
       </div>
 
       {/* ==================== FIRMAS DE CONFORMIDAD ==================== */}
-      <div className="mt-3 border-t border-gray-300 pt-3 no-break">
+      <div className="mt-2 border-t border-gray-300 pt-2 no-break">
         <div className="grid grid-cols-2 gap-12 text-center">
           <div className="flex flex-col items-center relative min-h-[40px] justify-end">
             {firmaDocenteUrl && (
@@ -456,5 +459,35 @@ export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
         </div>
       </div>
     </div>
-  );
+
+    {/* ==================== EVIDENCIAS FOTOGRÁFICAS (EN OTRA HOJA) ==================== */}
+    {evidenciasFotos && evidenciasFotos.length > 0 && (
+      <div className="print-sheet w-full max-w-[210mm] bg-white text-black mx-auto font-sans flex flex-col justify-start border border-gray-300 shadow-sm print:border-0 print:shadow-none select-none text-[8px] leading-snug mt-4">
+        <div className="text-center mb-4">
+          <h2 className="text-[12px] font-bold uppercase tracking-wider text-gray-900 border-b-2 border-black pb-2 inline-block">
+            Anexo: Evidencias Fotográficas de la Visita
+          </h2>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-6 mt-2">
+          {evidenciasFotos.map((foto, idx) => (
+            <div key={foto.id || idx} className="border border-gray-300 rounded p-3 flex flex-col items-center bg-white shadow-sm break-inside-avoid">
+              <div className="w-full h-[220px] flex items-center justify-center overflow-hidden bg-gray-50 border border-gray-200 rounded">
+                <img
+                  src={foto.url_foto}
+                  alt={`Evidencia ${idx + 1}`}
+                  className="max-w-full max-h-full object-contain pointer-events-none"
+                />
+              </div>
+              <div className="mt-2 text-center">
+                <span className="text-[8px] font-bold text-gray-500 uppercase tracking-wide">Evidencia {idx + 1}</span>
+                <p className="text-[9px] font-semibold text-gray-800 mt-0.5">{foto.seccion || "General"}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+  </>
+);
 }

@@ -31,7 +31,9 @@ interface VisitData {
   docente: { nombres: string; apellidos: string } | null;
   auditor: { nombres: string; apellidos: string } | null;
   created_at: string;
-  evidencias_fotos?: { id: number }[];
+  evidencias_fotos?: { id: number; fecha_captura?: string }[];
+  ultimo_paso_completado?: number;
+  firma_docente_b64?: string;
 }
 
 export default function DashboardPage() {
@@ -42,11 +44,19 @@ export default function DashboardPage() {
   const [sedes, setSedes] = useState<SedeData[]>([]);
 
   const getEffectiveEstadoId = (v: VisitData) => {
-    if (v.estado_id === 3 || v.estado_id === 4) {
-      const hasEvidence = v.evidencias_fotos && v.evidencias_fotos.length > 0;
-      return hasEvidence ? 3 : 4;
+    const hasEvidence = v.evidencias_fotos && v.evidencias_fotos.length > 0;
+    const hasTeacherSignature = v.firma_docente_b64 && v.firma_docente_b64.trim() !== "";
+    const step = v.ultimo_paso_completado || 1;
+
+    if (step < 7) {
+      return 2; // En progreso
+    } else {
+      if (!hasTeacherSignature) {
+        return 1; // Pendiente
+      } else {
+        return hasEvidence ? 3 : 4; // Completada u Observada
+      }
     }
-    return v.estado_id;
   };
 
   useEffect(() => {
@@ -62,24 +72,46 @@ export default function DashboardPage() {
             estado_id,
             sede_id,
             created_at,
+            ultimo_paso_completado,
+            firma_docente_b64,
             sedes(nombre),
             aulas(nombre),
             asignaturas(nombre),
             docente:usuarios!visitas_docente_id_fkey(nombres, apellidos),
             auditor:usuarios!visitas_auditor_id_fkey(nombres, apellidos),
-            evidencias_fotos(id)
+            evidencias_fotos(id, fecha_captura)
           `)
           .is("deleted_at", null);
 
-        // Los auditores solo pueden ver estadísticas de sus propias visitas
-        if (user.rol === "Auditor") {
-          query = query.eq("auditor_id", parseInt(user.id, 10));
+        // Los auditores solo pueden ver estadísticas de sus propias visitas, y los docentes las asignadas a ellos
+        if (user?.rol === "Auditor") {
+          query = query.eq("auditor_id", parseInt(user?.id || "0", 10));
+        } else if (user?.rol === "Docente") {
+          query = query.eq("docente_id", parseInt(user?.id || "0", 10));
         }
 
         const { data: visitsData, error: visitsError } = await query.order("id", { ascending: false });
 
         if (visitsError) console.error("Error fetching visits:", visitsError);
-        else if (visitsData) setVisits(visitsData as any);
+        else if (visitsData) {
+          // Sort dynamically by last activity time (creation date or latest photo upload)
+          const sorted = [...visitsData].sort((a: any, b: any) => {
+            const getSecs = (x: any) => {
+              let t = new Date(x.created_at).getTime();
+              if (x.evidencias_fotos && x.evidencias_fotos.length > 0) {
+                x.evidencias_fotos.forEach((p: any) => {
+                  if (p.fecha_captura) {
+                    const pt = new Date(p.fecha_captura).getTime();
+                    if (pt > t) t = pt;
+                  }
+                });
+              }
+              return t;
+            };
+            return getSecs(b) - getSecs(a);
+          });
+          setVisits(sorted as any);
+        }
 
         // Fetch all sedes
         const { data: sedesData, error: sedesError } = await supabase
@@ -100,6 +132,21 @@ export default function DashboardPage() {
   }, [supabase, user, authLoading]);
 
   // --- Helpers & Computations ---
+  const getLastActivityTime = (v: VisitData) => {
+    let lastTime = new Date(v.created_at).getTime();
+    if (v.evidencias_fotos && v.evidencias_fotos.length > 0) {
+      v.evidencias_fotos.forEach(photo => {
+        if (photo.fecha_captura) {
+          const photoTime = new Date(photo.fecha_captura).getTime();
+          if (photoTime > lastTime) {
+            lastTime = photoTime;
+          }
+        }
+      });
+    }
+    return lastTime;
+  };
+
   const getLocalTodayDateString = () => {
     const tzoffset = (new Date()).getTimezoneOffset() * 60000;
     return (new Date(Date.now() - tzoffset)).toISOString().slice(0, 10);
@@ -109,7 +156,7 @@ export default function DashboardPage() {
 
   // KPIs
   const visitsToday = visits.filter(v => v.fecha_visita === todayStr).length;
-  const visitsPending = visits.filter(v => getEffectiveEstadoId(v) === 1).length;
+  const visitsPending = visits.filter(v => getEffectiveEstadoId(v) === 1 || getEffectiveEstadoId(v) === 2).length;
   const visitsCompleted = visits.filter(v => getEffectiveEstadoId(v) === 3).length;
   const alertsActive = visits.filter(v => getEffectiveEstadoId(v) === 4).length; // Observadas
   const totalVisits = visits.length;
@@ -117,7 +164,7 @@ export default function DashboardPage() {
   // Donut chart percentages
   const finalizadasCount = visitsCompleted;
   const enCursoCount = visits.filter(v => getEffectiveEstadoId(v) === 2).length;
-  const pendientesCount = visitsPending;
+  const pendientesCount = visits.filter(v => getEffectiveEstadoId(v) === 1).length;
   const observadasCount = alertsActive;
 
   const pctFinalizadas = totalVisits > 0 ? (finalizadasCount / totalVisits) * 100 : 0;
@@ -160,9 +207,20 @@ export default function DashboardPage() {
       const diffMins = Math.floor(diffMs / 60000);
       if (diffMins < 1) return "Ahora mismo";
       if (diffMins < 60) return `Hace ${diffMins} min`;
+      
       const diffHours = Math.floor(diffMins / 60);
-      if (diffHours < 24) return `Hace ${diffHours} h`;
-      return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+      const remainingMins = diffMins % 60;
+      if (diffHours < 24) {
+        return remainingMins > 0 
+          ? `Hace ${diffHours} h ${remainingMins} min` 
+          : `Hace ${diffHours} h`;
+      }
+      
+      const diffDays = Math.floor(diffHours / 24);
+      const remainingHours = diffHours % 24;
+      return remainingHours > 0 || remainingMins > 0
+        ? `Hace ${diffDays} d ${remainingHours} h ${remainingMins} min`
+        : `Hace ${diffDays} d`;
     } catch {
       return "Recientemente";
     }
@@ -525,8 +583,8 @@ export default function DashboardPage() {
             </div>
 
             {/* Timeline */}
-            <div className="flex-1 relative border-l border-sivac-border-card ml-2.5 space-y-6 pb-2">
-              {visits.slice(0, 4).map((v, i) => {
+            <div className="flex-1 relative border-l border-sivac-border-card ml-2.5 space-y-[18px] pb-2">
+              {visits.slice(0, 7).map((v, i) => {
                 const effId = getEffectiveEstadoId(v);
                 return (
                   <div key={v.id} className="relative pl-6 group">
@@ -541,9 +599,11 @@ export default function DashboardPage() {
                         <Badge variant={getBadgeVariant(effId)}>
                           {getEventTitle(effId)}
                         </Badge>
-                        <span className="text-11 text-sivac-dim">{formatTimeAgo(v.created_at)}</span>
+                        <span className="text-11 text-sivac-dim">
+                          {formatTimeAgo(new Date(getLastActivityTime(v)).toISOString())}
+                        </span>
                       </div>
-                      <p className="text-12 font-normal text-sivac-body mt-1">
+                      <p className="text-12 font-normal text-sivac-body mt-0.5">
                         {getEventText(v)}
                       </p>
                     </div>

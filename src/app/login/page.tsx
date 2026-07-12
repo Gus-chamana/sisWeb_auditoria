@@ -5,13 +5,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { LayoutGrid, CheckCircle2, Cloud, RefreshCw, Sun } from "lucide-react";
+import { LayoutGrid, CheckCircle2, Cloud, RefreshCw, Sun, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -186,21 +187,30 @@ export default function LoginPage() {
               />
             </div>
 
-            <div>
+             <div>
               <label className="block text-12 font-medium text-sivac-muted tracking-wide-06 uppercase mb-2">
                 CONTRASEÑA
               </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="input-login w-full h-[48px] px-4 text-14 tracking-widest"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className={`input-login w-full h-[48px] pl-4 pr-12 text-14 ${showPassword ? "" : "tracking-widest"}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-sivac-muted hover:text-sivac-light transition-colors cursor-pointer"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center justify-between text-14 text-sivac-body">
+            <div className="flex items-center text-14 text-sivac-body">
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -208,12 +218,6 @@ export default function LoginPage() {
                 />
                 <span className="text-14 font-normal">Recordar sesión</span>
               </label>
-              <Link
-                href="/recuperar"
-                className="text-14 font-medium text-sivac-indigo hover:text-sivac-heading transition-colors"
-              >
-                ¿Recuperar contraseña?
-              </Link>
             </div>
 
             <button

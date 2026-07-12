@@ -192,7 +192,6 @@ export function Sidebar() {
     {
       name: "Notificaciones",
       href: "/admin/notificaciones",
-      badge: "3",
       icon: <Bell size={18} strokeWidth={2} />,
       roles: ["Admin", "Auditor", "Docente"],
     },
