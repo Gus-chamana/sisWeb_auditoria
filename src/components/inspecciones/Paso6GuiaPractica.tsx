@@ -48,7 +48,7 @@ export function Paso6GuiaPractica({ formData, updateFormData }: Paso6GuiaPractic
       </div>
 
       {}
-      <div className="glass-card p-6 sm:p-8 space-y-6 rounded-xl bg-white/5 border border-white/10">
+      <div className="glass-card p-6 sm:p-8 space-y-6 rounded-xl bg-sivac-bg-surface border border-sivac-border-card">
         
         {}
         <div className="space-y-6 divide-y divide-white/5">
@@ -64,7 +64,7 @@ export function Paso6GuiaPractica({ formData, updateFormData }: Paso6GuiaPractic
                 </div>
 
                 {}
-                <div className="flex bg-sivac-bg-input-admin/60 border border-white/10 p-0.5 rounded-lg w-full lg:w-[320px] shrink-0">
+                <div className="flex bg-sivac-bg-input-admin border border-sivac-border/50 p-0.5 rounded-lg w-full lg:w-[320px] shrink-0">
                   {}
                   <button
                     type="button"
@@ -99,7 +99,7 @@ export function Paso6GuiaPractica({ formData, updateFormData }: Paso6GuiaPractic
                     onClick={() => updateFormData({ [item.id]: "NO APLICA" })}
                     className={`flex-1 h-8 flex items-center justify-center gap-1 text-11 font-bold rounded transition-all ${
                       item.value === "NO APLICA"
-                        ? "bg-white/10 text-sivac-light border border-white/20"
+                        ? "bg-sivac-bg-toggle text-sivac-light border border-sivac-border/40"
                         : "text-sivac-muted hover:text-sivac-light"
                     }`}
                   >
@@ -122,7 +122,7 @@ export function Paso6GuiaPractica({ formData, updateFormData }: Paso6GuiaPractic
             value={observacionesGuia}
             onChange={(e) => updateFormData({ observacionesGuia: e.target.value })}
             placeholder="Ej. Se verificó el uso de la Guía de Laboratorio N° 4 en todos los grupos..."
-            className="w-full p-4 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-sivac-light text-14 outline-none focus:border-sivac-blue placeholder:text-sivac-muted transition-colors font-normal shadow-inner"
+            className="w-full p-4 bg-sivac-bg-input-admin border border-sivac-border/50 rounded-lg text-sivac-light text-14 outline-none focus:border-sivac-blue placeholder:text-sivac-muted transition-colors font-normal shadow-inner"
           />
         </div>
 

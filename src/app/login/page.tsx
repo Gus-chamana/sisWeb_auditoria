@@ -5,11 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { LayoutGrid, CheckCircle2, Cloud, RefreshCw, Sun, Eye, EyeOff } from "lucide-react";
+import { LayoutGrid, CheckCircle2, Cloud, RefreshCw, Sun, Moon, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { useTheme } from "@/lib/ThemeContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { theme, toggleTheme } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -148,9 +150,15 @@ export default function LoginPage() {
         <div className="self-end z-10">
           <button
             type="button"
+            onClick={toggleTheme}
             className="w-12 h-12 flex items-center justify-center bg-sivac-bg-toggle border border-sivac-border rounded-xl text-sivac-body hover:text-sivac-heading transition-colors"
+            title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
           >
-            <Sun size={20} strokeWidth={2} />
+            {theme === "dark" ? (
+              <Sun size={20} strokeWidth={2} />
+            ) : (
+              <Moon size={20} strokeWidth={2} />
+            )}
           </button>
         </div>
 

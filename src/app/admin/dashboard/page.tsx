@@ -436,7 +436,7 @@ export default function DashboardPage() {
                         cy="18"
                         r="15.915"
                         fill="transparent"
-                        stroke="#111827"
+                        stroke="var(--sivac-chart-track)"
                         strokeWidth="3.2"
                       />
                       {totalVisits > 0 ? (
@@ -500,7 +500,7 @@ export default function DashboardPage() {
                           cy="18"
                           r="15.915"
                           fill="transparent"
-                          stroke="#374151"
+                          stroke="var(--sivac-chart-track)"
                           strokeWidth="3.2"
                         />
                       )}

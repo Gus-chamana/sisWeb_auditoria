@@ -3,6 +3,124 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --sivac-bg-primary: #0d141d;
+    --sivac-bg-secondary: #151c25;
+    --sivac-bg-surface: #192029;
+    --sivac-bg-card: #1f2937;
+    --sivac-bg-input: #080f17;
+    --sivac-bg-input-admin: #111827;
+    --sivac-bg-toggle: #232a34;
+
+    --sivac-border: #434655;
+    --sivac-border-card: #374151;
+    --sivac-border-glass: rgba(67, 70, 85, 0.25);
+    --sivac-glass-bg: rgba(46, 53, 63, 0.16);
+
+    --sivac-heading: #dce3f0;
+    --sivac-body: #c3c6d7;
+    --sivac-light: #f3f4f6;
+    --sivac-muted: #9ca3af;
+    --sivac-dim: #6b7280;
+    --sivac-data: #d1d5db;
+
+    --sivac-blue: #2563eb;
+    --sivac-indigo: #b4c5ff;
+    --sivac-indigo-light: #dbe1ff;
+    --sivac-surface: #eeefff;
+    --sivac-green: #22c55e;
+    --sivac-green-soft: #4edea3;
+    --sivac-green-light: #4ade80;
+    --sivac-yellow: #eab308;
+    --sivac-yellow-soft: #ffb95f;
+    --sivac-red: #ef4444;
+    --sivac-red-soft: #ffb4ab;
+    --sivac-red-light: #f87171;
+    --sivac-blue-light: #60a5fa;
+    --sivac-blue-pale: #93c5fd;
+    --sivac-blue-pastel: #bfdbfe;
+    --sivac-chart-track: #111827;
+
+    --sivac-badge-green-bg: rgba(22, 101, 52, 0.2);
+    --sivac-badge-green-border: rgba(34, 197, 94, 0.4);
+    --sivac-badge-green-text: #4ade80;
+
+    --sivac-badge-blue-bg: rgba(30, 58, 138, 0.2);
+    --sivac-badge-blue-border: rgba(59, 130, 246, 0.4);
+    --sivac-badge-blue-text: #60a5fa;
+
+    --sivac-badge-yellow-bg: rgba(133, 77, 14, 0.2);
+    --sivac-badge-yellow-border: rgba(234, 179, 8, 0.4);
+    --sivac-badge-yellow-text: #fbbf24;
+
+    --sivac-badge-gray-bg: rgba(55, 65, 81, 0.2);
+    --sivac-badge-gray-border: rgba(75, 85, 99, 0.4);
+    --sivac-badge-gray-text: #9ca3af;
+
+    --sivac-badge-red-bg: rgba(153, 27, 27, 0.2);
+    --sivac-badge-red-border: rgba(239, 68, 68, 0.4);
+    --sivac-badge-red-text: #f87171;
+  }
+
+  .light {
+    --sivac-bg-primary: #f8fafc;
+    --sivac-bg-secondary: #ffffff;
+    --sivac-bg-surface: #ffffff;
+    --sivac-bg-card: #ffffff;
+    --sivac-bg-input: #f9fafb;
+    --sivac-bg-input-admin: #f8fafc;
+    --sivac-bg-toggle: #e2e8f0;
+
+    --sivac-border: #cbd5e1;
+    --sivac-border-card: #e2e8f0;
+    --sivac-border-glass: rgba(15, 23, 42, 0.08);
+    --sivac-glass-bg: rgba(255, 255, 255, 0.7);
+
+    --sivac-heading: #0f172a;
+    --sivac-body: #334155;
+    --sivac-light: #1e293b;
+    --sivac-muted: #64748b;
+    --sivac-dim: #94a3b8;
+    --sivac-data: #1e293b;
+
+    --sivac-blue: #2563eb;
+    --sivac-indigo: #4f46e5;
+    --sivac-indigo-light: #312e81;
+    --sivac-surface: #ffffff;
+    --sivac-green: #16a34a;
+    --sivac-green-soft: #16a34a;
+    --sivac-green-light: #22c55e;
+    --sivac-yellow: #ca8a04;
+    --sivac-yellow-soft: #a16207;
+    --sivac-red: #dc2626;
+    --sivac-red-soft: #dc2626;
+    --sivac-red-light: #ef4444;
+    --sivac-blue-light: #3b82f6;
+    --sivac-blue-pale: #dbeafe;
+    --sivac-blue-pastel: #eff6ff;
+    --sivac-chart-track: #f1f5f9;
+
+    --sivac-badge-green-bg: #dcfce7;
+    --sivac-badge-green-border: rgba(22, 163, 74, 0.4);
+    --sivac-badge-green-text: #15803d;
+
+    --sivac-badge-blue-bg: #dbeafe;
+    --sivac-badge-blue-border: rgba(59, 130, 246, 0.4);
+    --sivac-badge-blue-text: #1d4ed8;
+
+    --sivac-badge-yellow-bg: #fef9c3;
+    --sivac-badge-yellow-border: rgba(202, 138, 4, 0.4);
+    --sivac-badge-yellow-text: #854d0e;
+
+    --sivac-badge-gray-bg: #f1f5f9;
+    --sivac-badge-gray-border: rgba(148, 163, 184, 0.4);
+    --sivac-badge-gray-text: #475569;
+
+    --sivac-badge-red-bg: #fee2e2;
+    --sivac-badge-red-border: rgba(220, 38, 38, 0.4);
+    --sivac-badge-red-text: #b91c1c;
+  }
+
   * {
     margin: 0;
     padding: 0;
@@ -11,88 +129,84 @@
 
   body {
     font-family: var(--font-inter), sans-serif;
-    background-color: #0d141d;
-    color: #dce3f0;
+    background-color: var(--sivac-bg-primary);
+    color: var(--sivac-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 
-  
   ::-webkit-scrollbar {
     width: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #151c25;
+    background: var(--sivac-bg-secondary);
   }
   ::-webkit-scrollbar-thumb {
-    background: #434655;
+    background: var(--sivac-border);
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #5a5d6e;
+    background: var(--sivac-muted);
   }
 }
 
 @layer components {
-  
   .glass-card {
-    background: rgba(46, 53, 63, 0.16);
-    border: 1px solid rgba(67, 70, 85, 0.25);
+    background: var(--sivac-glass-bg);
+    border: 1px solid var(--sivac-border-glass);
     border-radius: 8px;
     backdrop-filter: blur(10.5px);
     -webkit-backdrop-filter: blur(10.5px);
+    transition: background 0.25s ease, border-color 0.25s ease;
   }
 
-  
   .admin-card {
-    background: #1f2937;
-    border: 1px solid #374151;
+    background: var(--sivac-bg-surface);
+    border: 1px solid var(--sivac-border);
     border-radius: 8px;
+    transition: background-color 0.25s ease, border-color 0.25s ease;
   }
 
-  
   .input-login {
-    background: #080f17;
-    border: 1px solid #434655;
+    background: var(--sivac-bg-input);
+    border: 1px solid var(--sivac-border);
     border-radius: 4px;
-    color: #dce3f0;
+    color: var(--sivac-heading);
     font-family: var(--font-inter), sans-serif;
     font-size: 14px;
     outline: none;
-    transition: border-color 0.2s ease;
+    transition: border-color 0.2s ease, background-color 0.25s ease, color 0.25s ease;
   }
   .input-login:focus {
-    border-color: #2563eb;
+    border-color: var(--sivac-blue);
   }
   .input-login::placeholder {
-    color: #434655;
+    color: var(--sivac-muted);
   }
 
-  
   .input-admin {
-    background: #111827;
-    border: 1px solid #374151;
+    background: var(--sivac-bg-input-admin);
+    border: 1px solid var(--sivac-border-card);
     border-radius: 6px;
-    color: #f3f4f6;
+    color: var(--sivac-light);
     font-family: var(--font-inter), sans-serif;
     font-size: 14px;
     outline: none;
-    transition: border-color 0.2s ease;
+    transition: border-color 0.2s ease, background-color 0.25s ease, color 0.25s ease;
   }
   .input-admin:focus {
-    border-color: #3b82f6;
+    border-color: var(--sivac-blue);
   }
   .input-admin::placeholder {
-    color: #9ca3af;
+    color: var(--sivac-muted);
   }
 
-  
   .nav-link-active {
     background: rgba(37, 99, 235, 0.012);
-    border: 1px solid #b4c5ff;
+    border: 1px solid var(--sivac-indigo);
   }
 
-  
   .badge {
     display: inline-flex;
     align-items: center;
@@ -101,6 +215,33 @@
     font-size: 12px;
     font-weight: 600;
     font-family: var(--font-inter), sans-serif;
+    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+  }
+
+  .badge-green {
+    background-color: var(--sivac-badge-green-bg);
+    border-color: var(--sivac-badge-green-border);
+    color: var(--sivac-badge-green-text);
+  }
+  .badge-blue {
+    background-color: var(--sivac-badge-blue-bg);
+    border-color: var(--sivac-badge-blue-border);
+    color: var(--sivac-badge-blue-text);
+  }
+  .badge-yellow {
+    background-color: var(--sivac-badge-yellow-bg);
+    border-color: var(--sivac-badge-yellow-border);
+    color: var(--sivac-badge-yellow-text);
+  }
+  .badge-gray {
+    background-color: var(--sivac-badge-gray-bg);
+    border-color: var(--sivac-badge-gray-border);
+    color: var(--sivac-badge-gray-text);
+  }
+  .badge-red {
+    background-color: var(--sivac-badge-red-bg);
+    border-color: var(--sivac-badge-red-border);
+    color: var(--sivac-badge-red-text);
   }
 }
 

@@ -25,7 +25,7 @@ export function Paso3MaterialVirtual({ formData, updateFormData }: Paso3Material
       </div>
 
       {}
-      <div className="glass-card p-6 sm:p-8 space-y-6 rounded-xl bg-white/5 border border-white/10">
+      <div className="glass-card p-6 sm:p-8 space-y-6 rounded-xl bg-sivac-bg-surface border border-sivac-border-card">
         
         {}
         <div className="space-y-3">
@@ -42,7 +42,7 @@ export function Paso3MaterialVirtual({ formData, updateFormData }: Paso3Material
               className={`p-5 rounded-lg border text-left flex items-center justify-between transition-all duration-200 ${
                 materialCargado === "CUMPLE"
                   ? "bg-sivac-blue/15 border-sivac-blue text-sivac-light shadow-md shadow-sivac-blue/5"
-                  : "bg-sivac-bg-input-admin/60 border-white/10 text-sivac-muted hover:border-white/20"
+                  : "bg-sivac-bg-input-admin border-sivac-border/50 text-sivac-muted hover:border-sivac-blue/50"
               }`}
             >
               <div className="flex items-center gap-3">
@@ -66,7 +66,7 @@ export function Paso3MaterialVirtual({ formData, updateFormData }: Paso3Material
               className={`p-5 rounded-lg border text-left flex items-center justify-between transition-all duration-200 ${
                 materialCargado === "NO CUMPLE"
                   ? "bg-red-500/10 border-red-500/80 text-red-200 shadow-md shadow-red-500/5"
-                  : "bg-sivac-bg-input-admin/60 border-white/10 text-sivac-muted hover:border-white/20"
+                  : "bg-sivac-bg-input-admin border-sivac-border/50 text-sivac-muted hover:border-sivac-blue/50"
               }`}
             >
               <div className="flex items-center gap-3">
@@ -96,7 +96,7 @@ export function Paso3MaterialVirtual({ formData, updateFormData }: Paso3Material
             value={observacionesMaterial}
             onChange={(e) => updateFormData({ observacionesMaterial: e.target.value })}
             placeholder="Especifica detalles sobre los materiales revisados. Ej: Las diapositivas y guías de laboratorio se encuentran publicadas desde el inicio de la semana."
-            className="w-full p-4 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-sivac-light text-14 outline-none focus:border-sivac-blue placeholder:text-sivac-muted transition-colors font-normal shadow-inner"
+            className="w-full p-4 bg-sivac-bg-input-admin border border-sivac-border/50 rounded-lg text-sivac-light text-14 outline-none focus:border-sivac-blue placeholder:text-sivac-muted transition-colors font-normal shadow-inner"
           />
         </div>
 

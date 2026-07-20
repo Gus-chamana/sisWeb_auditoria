@@ -37,10 +37,10 @@ export function Paso2ControlDocente({ formData, updateFormData }: Paso2ControlDo
 
       {}
       <div
-        className={`glass-card p-6 sm:p-8 space-y-6 transition-all duration-300 rounded-xl bg-white/5 border ${
+        className={`glass-card p-6 sm:p-8 space-y-6 transition-all duration-300 rounded-xl bg-sivac-bg-surface border ${
           esAusente
             ? "border-red-500/80 shadow-lg shadow-red-500/5 bg-red-950/5"
-            : "border-white/10"
+            : "border-sivac-border-card"
         }`}
       >
         {}
@@ -62,7 +62,7 @@ export function Paso2ControlDocente({ formData, updateFormData }: Paso2ControlDo
               className={`p-4 rounded-lg border text-left flex items-center justify-between transition-all duration-200 ${
                 docentePresente === "Presente"
                   ? "bg-sivac-blue/15 border-sivac-blue text-sivac-light shadow-md shadow-sivac-blue/5"
-                  : "bg-sivac-bg-input-admin/60 border-white/10 text-sivac-muted hover:border-white/20"
+                  : "bg-sivac-bg-input-admin border-sivac-border/50 text-sivac-muted hover:border-sivac-blue/50"
               }`}
             >
               <div className="flex items-center gap-3">
@@ -83,7 +83,7 @@ export function Paso2ControlDocente({ formData, updateFormData }: Paso2ControlDo
               className={`p-4 rounded-lg border text-left flex items-center justify-between transition-all duration-200 ${
                 docentePresente === "Ausente"
                   ? "bg-red-500/10 border-red-500 text-red-200 shadow-md shadow-red-500/5"
-                  : "bg-sivac-bg-input-admin/60 border-white/10 text-sivac-muted hover:border-white/20"
+                  : "bg-sivac-bg-input-admin border-sivac-border/50 text-sivac-muted hover:border-sivac-blue/50"
               }`}
             >
               <div className="flex items-center gap-3">
@@ -130,11 +130,11 @@ export function Paso2ControlDocente({ formData, updateFormData }: Paso2ControlDo
               disabled={esAusente}
               onClick={() => updateFormData({ horarioProgramado: "Puntual" })}
               className={`p-4 rounded-lg border text-left flex items-center justify-between transition-all duration-200 ${
-                esAusente ? "opacity-40 cursor-not-allowed border-white/5" : ""
+                esAusente ? "opacity-40 cursor-not-allowed border-sivac-border/20" : ""
               } ${
                 horarioProgramado === "Puntual" && !esAusente
                   ? "bg-sivac-blue/15 border-sivac-blue text-sivac-light"
-                  : "bg-sivac-bg-input-admin/60 border-white/10 text-sivac-muted hover:border-white/20"
+                  : "bg-sivac-bg-input-admin border-sivac-border/50 text-sivac-muted hover:border-sivac-blue/50"
               }`}
             >
               <span className="text-14 font-semibold">Puntual</span>
@@ -151,11 +151,11 @@ export function Paso2ControlDocente({ formData, updateFormData }: Paso2ControlDo
               disabled={esAusente}
               onClick={() => updateFormData({ horarioProgramado: "Impuntual" })}
               className={`p-4 rounded-lg border text-left flex items-center justify-between transition-all duration-200 ${
-                esAusente ? "opacity-40 cursor-not-allowed border-white/5" : ""
+                esAusente ? "opacity-40 cursor-not-allowed border-sivac-border/20" : ""
               } ${
                 horarioProgramado === "Impuntual" && !esAusente
                   ? "bg-sivac-blue/15 border-sivac-blue text-sivac-light"
-                  : "bg-sivac-bg-input-admin/60 border-white/10 text-sivac-muted hover:border-white/20"
+                  : "bg-sivac-bg-input-admin border-sivac-border/50 text-sivac-muted hover:border-sivac-blue/50"
               }`}
             >
               <span className="text-14 font-semibold">Impuntual / Con Retraso</span>
@@ -181,11 +181,11 @@ export function Paso2ControlDocente({ formData, updateFormData }: Paso2ControlDo
               disabled={esAusente}
               onClick={() => updateFormData({ interaccion: "Interactúa" })}
               className={`p-4 rounded-lg border text-left flex items-center justify-between transition-all duration-200 ${
-                esAusente ? "opacity-40 cursor-not-allowed border-white/5" : ""
+                esAusente ? "opacity-40 cursor-not-allowed border-sivac-border/20" : ""
               } ${
                 interaccion === "Interactúa" && !esAusente
                   ? "bg-sivac-blue/15 border-sivac-blue text-sivac-light"
-                  : "bg-sivac-bg-input-admin/60 border-white/10 text-sivac-muted hover:border-white/20"
+                  : "bg-sivac-bg-input-admin border-sivac-border/50 text-sivac-muted hover:border-sivac-blue/50"
               }`}
             >
               <span className="text-14 font-semibold">Interactúa con los estudiantes</span>
@@ -202,11 +202,11 @@ export function Paso2ControlDocente({ formData, updateFormData }: Paso2ControlDo
               disabled={esAusente}
               onClick={() => updateFormData({ interaccion: "No Interactúa" })}
               className={`p-4 rounded-lg border text-left flex items-center justify-between transition-all duration-200 ${
-                esAusente ? "opacity-40 cursor-not-allowed border-white/5" : ""
+                esAusente ? "opacity-40 cursor-not-allowed border-sivac-border/20" : ""
               } ${
                 interaccion === "No Interactúa" && !esAusente
                   ? "bg-sivac-blue/15 border-sivac-blue text-sivac-light"
-                  : "bg-sivac-bg-input-admin/60 border-white/10 text-sivac-muted hover:border-white/20"
+                  : "bg-sivac-bg-input-admin border-sivac-border/50 text-sivac-muted hover:border-sivac-blue/50"
               }`}
             >
               <span className="text-14 font-semibold">Clase Plana / Sin Interacción</span>
@@ -231,7 +231,7 @@ export function Paso2ControlDocente({ formData, updateFormData }: Paso2ControlDo
               value={actividadDocente}
               onChange={(e) => updateFormData({ actividadDocente: e.target.value })}
               placeholder="Ej. El docente expone la teoría del tema y organiza debates grupales..."
-              className="w-full p-4 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-sivac-light text-14 outline-none focus:border-sivac-blue placeholder:text-sivac-muted transition-colors font-normal shadow-inner"
+              className="w-full p-4 bg-sivac-bg-input-admin border border-sivac-border/50 rounded-lg text-sivac-light text-14 outline-none focus:border-sivac-blue placeholder:text-sivac-muted transition-colors font-normal shadow-inner"
             />
           </div>
         )}

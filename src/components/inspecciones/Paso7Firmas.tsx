@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Info, PenTool, RotateCcw, CheckCircle, Award, User, Bookmark } from "lucide-react";
+import { useTheme } from "@/lib/ThemeContext";
 
 interface Paso7FormData {
   docenteNombre: string;
@@ -18,6 +19,8 @@ export function Paso7Firmas({ formData, updateFormData }: Paso7FirmasProps) {
   const { docenteNombre, asignatura, aula, sedeFilial, firmaDocenteUrl } = formData;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const { theme } = useTheme();
+  const isLight = theme === "light";
 
   
   useEffect(() => {
@@ -49,6 +52,11 @@ export function Paso7Firmas({ formData, updateFormData }: Paso7FirmasProps) {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
 
     let clientX, clientY;
     if ("touches" in e) {
@@ -128,7 +136,7 @@ export function Paso7Firmas({ formData, updateFormData }: Paso7FirmasProps) {
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         
         {}
-        <div className="glass-card p-6 rounded-xl bg-white/5 border border-white/10 md:col-span-2 space-y-4 flex flex-col justify-between">
+        <div className="glass-card p-6 rounded-xl bg-sivac-bg-surface border border-sivac-border-card md:col-span-2 space-y-4 flex flex-col justify-between">
           <div className="space-y-4">
             <h3 className="text-15 font-bold text-sivac-light flex items-center gap-2 border-b border-white/5 pb-3">
               <Award size={18} className="text-sivac-blue-light" />
@@ -177,7 +185,7 @@ export function Paso7Firmas({ formData, updateFormData }: Paso7FirmasProps) {
         </div>
 
         {}
-        <div className="glass-card p-6 rounded-xl bg-white/5 border border-white/10 md:col-span-3 space-y-4">
+        <div className="glass-card p-6 rounded-xl bg-sivac-bg-surface border border-sivac-border-card md:col-span-3 space-y-4">
           <div className="flex justify-between items-center border-b border-white/5 pb-3">
             <h3 className="text-15 font-bold text-sivac-light flex items-center gap-2">
               <PenTool size={18} className="text-sivac-blue-light" />
@@ -208,6 +216,7 @@ export function Paso7Firmas({ formData, updateFormData }: Paso7FirmasProps) {
               onTouchMove={draw}
               onTouchEnd={stopDrawing}
               className="absolute inset-0 w-full h-full"
+              style={{ filter: isLight ? "invert(1)" : "none" }}
             />
             {!firmaDocenteUrl && !isDrawing && (
               <span className="text-12 text-sivac-dim pointer-events-none select-none">

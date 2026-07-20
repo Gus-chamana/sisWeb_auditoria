@@ -3,12 +3,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Bell, ChevronDown, Lock, LogOut, Loader2, X, Eye, EyeOff } from "lucide-react";
+import { Search, Bell, ChevronDown, Lock, LogOut, Loader2, X, Eye, EyeOff, Sun, Moon } from "lucide-react";
 import { getRolLabel, getRolColor } from "@/lib/auth";
 import { useAuth } from "@/lib/AuthContext";
+import { useTheme } from "@/lib/ThemeContext";
 
 export function Header() {
   const { user, loading, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -189,6 +191,20 @@ export function Header() {
 
       {}
       <div className="flex items-center gap-4">
+        {}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="w-10 h-10 flex items-center justify-center bg-sivac-bg-toggle border border-sivac-border rounded-xl text-sivac-body hover:text-sivac-heading transition-colors cursor-pointer"
+          title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+        >
+          {theme === "dark" ? (
+            <Sun size={18} strokeWidth={2} />
+          ) : (
+            <Moon size={18} strokeWidth={2} />
+          )}
+        </button>
+
         {}
         <Link
           href="/admin/notificaciones"

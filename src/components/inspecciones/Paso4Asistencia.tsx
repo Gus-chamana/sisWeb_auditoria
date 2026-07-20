@@ -45,7 +45,7 @@ export function Paso4Asistencia({ formData, updateFormData, modalidad }: Paso4As
       </div>
 
       {}
-      <div className="glass-card p-6 sm:p-8 space-y-6 rounded-xl bg-white/5 border border-white/10">
+      <div className="glass-card p-6 sm:p-8 space-y-6 rounded-xl bg-sivac-bg-surface border border-sivac-border-card">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           
           {}
@@ -54,7 +54,7 @@ export function Paso4Asistencia({ formData, updateFormData, modalidad }: Paso4As
               <Users size={16} className="text-sivac-blue-light" />
               Alumnos en Ambiente (Físico)
               {modalidad === "Virtual" && (
-                <span className="text-11 font-medium text-orange-400 normal-case">(No aplica en Virtual)</span>
+                <span className="text-11 font-medium text-orange-500 normal-case">(No aplica en Virtual)</span>
               )}
             </label>
             <input
@@ -69,8 +69,8 @@ export function Paso4Asistencia({ formData, updateFormData, modalidad }: Paso4As
               placeholder={modalidad === "Virtual" ? "N/A" : "Ej. 28"}
               className={`w-full h-[46px] px-4 rounded-lg text-sivac-light text-14 outline-none transition-all ${
                 modalidad === "Virtual"
-                  ? "bg-white/5 border border-white/5 text-sivac-muted cursor-not-allowed"
-                  : "bg-sivac-bg-input-admin border border-white/10 focus:border-sivac-blue placeholder:text-sivac-muted"
+                  ? "bg-sivac-bg-toggle border border-sivac-border/20 text-sivac-muted cursor-not-allowed"
+                  : "bg-sivac-bg-input-admin border border-sivac-border/50 focus:border-sivac-blue placeholder:text-sivac-muted"
               }`}
             />
           </div>
@@ -81,7 +81,7 @@ export function Paso4Asistencia({ formData, updateFormData, modalidad }: Paso4As
               <BookOpen size={16} className="text-sivac-blue-light" />
               Alumnos en Intranet (Marcados)
               {modalidad === "Presencial" && (
-                <span className="text-11 font-medium text-orange-400 normal-case">(No aplica en Presencial)</span>
+                <span className="text-11 font-medium text-orange-500 normal-case">(No aplica en Presencial)</span>
               )}
             </label>
             <input
@@ -96,8 +96,8 @@ export function Paso4Asistencia({ formData, updateFormData, modalidad }: Paso4As
               placeholder={modalidad === "Presencial" ? "N/A" : "Ej. 30"}
               className={`w-full h-[46px] px-4 rounded-lg text-sivac-light text-14 outline-none transition-all ${
                 modalidad === "Presencial"
-                  ? "bg-white/5 border border-white/5 text-sivac-muted cursor-not-allowed"
-                  : "bg-sivac-bg-input-admin border border-white/10 focus:border-sivac-blue placeholder:text-sivac-muted"
+                  ? "bg-sivac-bg-toggle border border-sivac-border/20 text-sivac-muted cursor-not-allowed"
+                  : "bg-sivac-bg-input-admin border border-sivac-border/50 focus:border-sivac-blue placeholder:text-sivac-muted"
               }`}
             />
           </div>
@@ -106,7 +106,7 @@ export function Paso4Asistencia({ formData, updateFormData, modalidad }: Paso4As
 
         {}
         {tieneDiferencia && (
-          <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 flex gap-3 items-center animate-pulse">
+          <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-500 flex gap-3 items-center animate-pulse">
             <AlertTriangle size={20} className="flex-shrink-0" />
             <div className="text-13 font-semibold">
               ⚠️ Diferencia de asistencia detectada: Existe una disparidad de {diferencia} {diferencia === 1 ? "estudiante" : "estudiantes"} entre lo presencial y lo registrado en intranet.
@@ -124,7 +124,7 @@ export function Paso4Asistencia({ formData, updateFormData, modalidad }: Paso4As
             value={observacionesAsistencia}
             onChange={(e) => updateFormData({ observacionesAsistencia: e.target.value })}
             placeholder="Ej. Algunos alumnos llegaron tarde y no alcanzaron a marcar en el portal..."
-            className="w-full p-4 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-sivac-light text-14 outline-none focus:border-sivac-blue placeholder:text-sivac-muted transition-colors font-normal shadow-inner"
+            className="w-full p-4 bg-sivac-bg-input-admin border border-sivac-border/50 rounded-lg text-sivac-light text-14 outline-none focus:border-sivac-blue placeholder:text-sivac-muted transition-colors font-normal shadow-inner"
           />
         </div>
 

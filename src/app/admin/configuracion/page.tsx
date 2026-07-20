@@ -4,9 +4,12 @@ import React, { useState, useRef, useEffect } from "react";
 import { Check, Building2, Calendar, BookOpen, Clock, Trash2, Plus, PenTool, RotateCcw, X } from "lucide-react";
 import { AccessGuard } from "@/components/layout/AccessGuard";
 import { useAuth } from "@/lib/AuthContext";
+import { useTheme } from "@/lib/ThemeContext";
 
 export default function ConfigurableSettingsPage() {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === "light";
   const [sedes, setSedes] = useState<{ id: number; nombre: string }[]>([]);
   const [cursos, setCursos] = useState<{ id: number; nombre: string }[]>([]);
   const [ciclos, setCiclos] = useState<{ id: number; nombre: string }[]>([]);
@@ -279,6 +282,11 @@ export default function ConfigurableSettingsPage() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
     let clientX, clientY;
     if ("touches" in e) {
       clientX = e.touches[0].clientX;
@@ -439,6 +447,7 @@ export default function ConfigurableSettingsPage() {
                   onTouchMove={draw}
                   onTouchEnd={stopDrawing}
                   className="absolute inset-0 w-full h-full"
+                  style={{ filter: isLight ? "invert(1)" : "none" }}
                 />
                 {!firmaUrl && !isDrawing && (
                   <span className="text-12 text-sivac-dim pointer-events-none select-none">
