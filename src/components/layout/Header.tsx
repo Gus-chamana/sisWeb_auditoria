@@ -219,7 +219,9 @@ export function Header() {
   const currentUser = user;
 
   return (
-    <header className="h-[72px] bg-sivac-bg-primary border-b border-sivac-border flex items-center justify-between px-8 sticky top-0 z-20 font-inter">
+    <header className={`h-[72px] bg-sivac-bg-primary border-b border-sivac-border flex items-center justify-between px-8 sticky top-0 font-inter transition-all ${
+      (showPasswordModal || showProfileModal) ? "z-[999]" : "z-20"
+    }`}>
       {}
       <div className="relative w-full max-w-md">
         <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-sivac-muted">
