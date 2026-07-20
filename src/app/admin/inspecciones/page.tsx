@@ -96,7 +96,13 @@ export default function InspeccionesPage() {
   const [validationError, setValidationError] = useState("");
 
   const updateFormData = (fields: Partial<typeof formData>) => {
-    setFormData((prev) => ({ ...prev, ...fields }));
+    setFormData((prev) => {
+      const next = { ...prev, ...fields };
+      if (fields.hasOwnProperty("modalidad") && visitaId) {
+        localStorage.setItem(`visita_modalidad_${visitaId}`, fields.modalidad || "");
+      }
+      return next;
+    });
     setValidationError("");
   };
 
@@ -187,6 +193,10 @@ export default function InspeccionesPage() {
                   }
                 }
 
+                const cicloParam = params.get("ciclo");
+                const turnoParam = params.get("turno");
+                const semanaNoParam = params.get("semanaNo");
+
                 const { data: newVisita, error } = await supabase
                   .from("visitas")
                   .insert({
@@ -195,9 +205,9 @@ export default function InspeccionesPage() {
                     hora_inicio_real: getLocalTimeString(),
                     estado_id: 2, 
                     ultimo_paso_completado: 1,
-                    ciclo: params.get("ciclo") || "2026-I",
-                    turno: params.get("turno") || "Noche",
-                    semana_nro: parseInt(params.get("semanaNo") || "12", 10),
+                    ciclo: cicloParam || null,
+                    turno: turnoParam || null,
+                    semana_nro: semanaNoParam ? parseInt(semanaNoParam, 10) : null,
                   })
                   .select("id")
                   .single();
@@ -318,15 +328,31 @@ export default function InspeccionesPage() {
         ? (parsedAsistencia.alumnosIntranet !== "" ? parsedAsistencia.alumnosIntranet : (isEncodedAsistencia ? "" : 25))
         : "") as number | "";
 
+      let loadedModalidad = "";
+      if (typeof window !== "undefined") {
+        loadedModalidad = localStorage.getItem(`visita_modalidad_${vid}`) || "";
+      }
+      if (!loadedModalidad && evalAsistencia) {
+        const hasAmbiente = evalAsistencia.ambiente_cumple_id !== null;
+        const hasIntranet = evalAsistencia.intranet_cumple_id !== null;
+        if (hasAmbiente && hasIntranet) {
+          loadedModalidad = "Híbrido";
+        } else if (hasAmbiente) {
+          loadedModalidad = "Presencial";
+        } else if (hasIntranet) {
+          loadedModalidad = "Virtual";
+        }
+      }
+
       setFormData({
-        sedeFilial: (visita.sedes as any)?.nombre || "Sede Central - Lima",
-        ciclo: visita.ciclo || "2026-I",
-        turno: visita.turno || "Noche",
+        sedeFilial: (visita.sedes as any)?.nombre || "",
+        ciclo: visita.ciclo || "",
+        turno: visita.turno || "",
         aula: (visita.aulas as any)?.nombre || "",
         asignatura: (visita.asignaturas as any)?.nombre || "",
-        semanaNo: (visita.semana_nro || 12).toString(),
-        modalidad: "Presencial",
-        docenteNombre: `${(visita.docente as any)?.nombres || ""} ${(visita.docente as any)?.apellidos || ""}`.trim() || "Docente",
+        semanaNo: visita.semana_nro ? visita.semana_nro.toString() : "",
+        modalidad: loadedModalidad,
+        docenteNombre: `${(visita.docente as any)?.nombres || ""} ${(visita.docente as any)?.apellidos || ""}`.trim(),
         docentePresente: evalControl ? (evalControl.presente_id === 4 ? "Presente" : evalControl.presente_id === 5 ? "Ausente" : "") : "",
         horarioProgramado: evalControl ? (evalControl.horario_id === 6 ? "Puntual" : evalControl.horario_id === 7 ? "Impuntual" : "") : "",
         interaccion: evalControl ? (evalControl.interaccion_id === 1 ? "Interactúa" : evalControl.interaccion_id === 2 ? "No Interactúa" : "") : "",
@@ -432,7 +458,7 @@ export default function InspeccionesPage() {
           fecha_visita: new Date().toISOString().split("T")[0],
           ciclo: formData.ciclo,
           turno: formData.turno,
-          semana_nro: parseInt(formData.semanaNo, 10) || 12,
+          semana_nro: formData.semanaNo ? parseInt(formData.semanaNo, 10) : null,
           ultimo_paso_completado: 2,
           estado_id: 2, 
         };
