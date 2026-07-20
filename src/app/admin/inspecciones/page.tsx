@@ -34,6 +34,8 @@ const parseAsistenciaObs = (rawObs: string) => {
   return { alumnosAmbiente: "" as number | "", alumnosIntranet: "" as number | "", observaciones: rawObs };
 };
 
+let activeCreationPromise: Promise<number | null> | null = null;
+
 export default function InspeccionesPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -166,37 +168,56 @@ export default function InspeccionesPage() {
         const params = new URLSearchParams(window.location.search);
         const idParam = params.get("visitaId");
         if (!idParam) {
-          let auditorId = 2;
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user?.email) {
-            const { data: dbUser } = await supabase
-              .from("usuarios")
-              .select("id")
-              .eq("username", session.user.email)
-              .maybeSingle();
-            if (dbUser) {
-              auditorId = dbUser.id;
-            }
+          let currentVisitaId: number | null = null;
+          if (activeCreationPromise) {
+            currentVisitaId = await activeCreationPromise;
+          } else {
+            activeCreationPromise = (async () => {
+              try {
+                let auditorId = 2;
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user?.email) {
+                  const { data: dbUser } = await supabase
+                    .from("usuarios")
+                    .select("id")
+                    .eq("username", session.user.email)
+                    .maybeSingle();
+                  if (dbUser) {
+                    auditorId = dbUser.id;
+                  }
+                }
+
+                const { data: newVisita, error } = await supabase
+                  .from("visitas")
+                  .insert({
+                    auditor_id: auditorId,
+                    fecha_visita: new Date().toISOString().split("T")[0],
+                    hora_inicio_real: getLocalTimeString(),
+                    estado_id: 2, 
+                    ultimo_paso_completado: 1,
+                    ciclo: params.get("ciclo") || "2026-I",
+                    turno: params.get("turno") || "Noche",
+                    semana_nro: parseInt(params.get("semanaNo") || "12", 10),
+                  })
+                  .select("id")
+                  .single();
+
+                if (!error && newVisita) {
+                  return newVisita.id;
+                }
+              } catch (e) {
+                console.error("Error al crear visita:", e);
+              }
+              return null;
+            })();
+
+            currentVisitaId = await activeCreationPromise;
+            activeCreationPromise = null;
           }
 
-          const { data: newVisita, error } = await supabase
-            .from("visitas")
-            .insert({
-              auditor_id: auditorId,
-              fecha_visita: new Date().toISOString().split("T")[0],
-              hora_inicio_real: getLocalTimeString(),
-              estado_id: 2, 
-              ultimo_paso_completado: 1,
-              ciclo: params.get("ciclo") || "2026-I",
-              turno: params.get("turno") || "Noche",
-              semana_nro: parseInt(params.get("semanaNo") || "12", 10),
-            })
-            .select("id")
-            .single();
-
-          if (!error && newVisita) {
-            setVisitaId(newVisita.id);
-            window.history.replaceState(null, "", `?visitaId=${newVisita.id}`);
+          if (currentVisitaId) {
+            setVisitaId(currentVisitaId);
+            window.history.replaceState(null, "", `?visitaId=${currentVisitaId}`);
           }
         }
       } catch (err) {
