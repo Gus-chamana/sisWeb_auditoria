@@ -27,7 +27,7 @@ export function Paso2ControlDocente({ formData, updateFormData }: Paso2ControlDo
 
   return (
     <div className="space-y-6">
-      {/* Banner Informativo */}
+      {}
       <div className="p-4 rounded-lg bg-sivac-blue/10 border border-sivac-blue/30 text-sivac-indigo-light flex gap-3 items-start">
         <Info size={18} strokeWidth={2.5} className="flex-shrink-0 mt-0.5 text-sivac-blue-light" />
         <div className="text-13 leading-relaxed">
@@ -35,7 +35,7 @@ export function Paso2ControlDocente({ formData, updateFormData }: Paso2ControlDo
         </div>
       </div>
 
-      {/* Tarjeta Principal de Control Docente */}
+      {}
       <div
         className={`glass-card p-6 sm:p-8 space-y-6 transition-all duration-300 rounded-xl bg-white/5 border ${
           esAusente
@@ -43,14 +43,14 @@ export function Paso2ControlDocente({ formData, updateFormData }: Paso2ControlDo
             : "border-white/10"
         }`}
       >
-        {/* Pregunta 1: Asistencia */}
+        {}
         <div className="space-y-3">
           <label className="block text-14 font-semibold text-sivac-light flex items-center gap-2">
             <UserCheck size={16} className="text-sivac-blue-light" />
             1. Asistencia del Docente
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Opción Presente */}
+            {}
             <button
               type="button"
               onClick={() => {
@@ -76,7 +76,7 @@ export function Paso2ControlDocente({ formData, updateFormData }: Paso2ControlDo
               </div>
             </button>
 
-            {/* Opción Ausente */}
+            {}
             <button
               type="button"
               onClick={() => updateFormData({ docentePresente: "Ausente" })}
@@ -99,7 +99,7 @@ export function Paso2ControlDocente({ formData, updateFormData }: Paso2ControlDo
           </div>
         </div>
 
-        {/* Sección condicional: Observaciones de la Ausencia */}
+        {}
         {esAusente && (
           <div className="space-y-3 p-4 rounded-lg bg-red-500/5 border border-red-500/25 animate-fadeIn">
             <label className="block text-13 font-semibold text-red-200 flex items-center gap-1.5">
@@ -117,14 +117,14 @@ export function Paso2ControlDocente({ formData, updateFormData }: Paso2ControlDo
           </div>
         )}
 
-        {/* Pregunta 2: Horario Programado */}
+        {}
         <div className="space-y-3">
           <label className="block text-14 font-semibold text-sivac-light flex items-center gap-2">
             <Clock size={16} className="text-sivac-blue-light" />
             2. Horario Programado (Puntualidad)
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Puntual */}
+            {}
             <button
               type="button"
               disabled={esAusente}
@@ -145,7 +145,7 @@ export function Paso2ControlDocente({ formData, updateFormData }: Paso2ControlDo
               </div>
             </button>
 
-            {/* Impuntual */}
+            {}
             <button
               type="button"
               disabled={esAusente}
@@ -168,14 +168,14 @@ export function Paso2ControlDocente({ formData, updateFormData }: Paso2ControlDo
           </div>
         </div>
 
-        {/* Pregunta 3: Interacción */}
+        {}
         <div className="space-y-3">
           <label className="block text-14 font-semibold text-sivac-light flex items-center gap-2">
             <HandHelping size={16} className="text-sivac-blue-light" />
             3. Interacción en Clase
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Interactúa */}
+            {}
             <button
               type="button"
               disabled={esAusente}
@@ -196,7 +196,7 @@ export function Paso2ControlDocente({ formData, updateFormData }: Paso2ControlDo
               </div>
             </button>
 
-            {/* No Interactúa */}
+            {}
             <button
               type="button"
               disabled={esAusente}
@@ -219,7 +219,7 @@ export function Paso2ControlDocente({ formData, updateFormData }: Paso2ControlDo
           </div>
         </div>
 
-        {/* Detalle de la actividad frecuente */}
+        {}
         {!esAusente && (
           <div className="space-y-3">
             <label className="block text-14 font-semibold text-sivac-light flex items-center gap-2">

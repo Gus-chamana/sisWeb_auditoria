@@ -15,10 +15,10 @@ export default function RecuperarPage() {
 
   return (
     <main className="min-h-screen bg-sivac-bg-primary font-inter flex flex-col justify-between items-center p-6 relative overflow-hidden">
-      {/* Decorative Background Glow */}
+      {}
       <div className="absolute top-[20%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] rounded-full bg-sivac-blue/5 blur-[150px] pointer-events-none" />
 
-      {/* Header - Back Button */}
+      {}
       <header className="w-full max-w-6xl flex justify-start z-10">
         <Link
           href="/login"
@@ -28,11 +28,11 @@ export default function RecuperarPage() {
         </Link>
       </header>
 
-      {/* Main Glassmorphism Card */}
+      {}
       <div className="my-auto w-full max-w-lg z-10">
         <div className="bg-[#1f29375c] rounded-xl border border-sivac-border-glass p-2 backdrop-blur-glass shadow-2xl">
           <div className="bg-sivac-bg-surface rounded-lg border border-sivac-border p-8 sm:p-10">
-            {/* Header Content */}
+            {}
             <div className="text-center mb-8">
               <h2 className="font-poppins text-28 sm:text-32 font-bold text-sivac-heading mb-2">
                 Recuperar Acceso
@@ -42,7 +42,7 @@ export default function RecuperarPage() {
               </p>
             </div>
 
-            {/* Form */}
+            {}
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-12 font-medium text-sivac-muted tracking-wide-06 uppercase mb-2">
@@ -64,10 +64,10 @@ export default function RecuperarPage() {
               </button>
             </form>
 
-            {/* Divider */}
+            {}
             <div className="my-6 border-b border-sivac-border" />
 
-            {/* Link back */}
+            {}
             <div className="text-center">
               <Link
                 href="/login"
@@ -81,7 +81,7 @@ export default function RecuperarPage() {
         </div>
       </div>
 
-      {/* Footer */}
+      {}
       <footer className="w-full text-center z-10 py-4">
         <p className="text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">
           SISTEMA DE SUPERVISIÓN ACADÉMICA

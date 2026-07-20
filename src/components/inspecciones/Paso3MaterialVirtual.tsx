@@ -16,7 +16,7 @@ export function Paso3MaterialVirtual({ formData, updateFormData }: Paso3Material
 
   return (
     <div className="space-y-6">
-      {/* Banner Informativo */}
+      {}
       <div className="p-4 rounded-lg bg-sivac-blue/10 border border-sivac-blue/30 text-sivac-indigo-light flex gap-3 items-start">
         <Info size={18} strokeWidth={2.5} className="flex-shrink-0 mt-0.5 text-sivac-blue-light" />
         <div className="text-13 leading-relaxed">
@@ -24,10 +24,10 @@ export function Paso3MaterialVirtual({ formData, updateFormData }: Paso3Material
         </div>
       </div>
 
-      {/* Tarjeta Principal de Material Virtual */}
+      {}
       <div className="glass-card p-6 sm:p-8 space-y-6 rounded-xl bg-white/5 border border-white/10">
         
-        {/* Pregunta única: Estado del Material */}
+        {}
         <div className="space-y-3">
           <label className="block text-14 font-semibold text-sivac-light flex items-center gap-2">
             <Cloud size={16} className="text-sivac-blue-light" />
@@ -35,7 +35,7 @@ export function Paso3MaterialVirtual({ formData, updateFormData }: Paso3Material
           </label>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Opción Cumple */}
+            {}
             <button
               type="button"
               onClick={() => updateFormData({ materialCargado: "CUMPLE" })}
@@ -59,7 +59,7 @@ export function Paso3MaterialVirtual({ formData, updateFormData }: Paso3Material
               </div>
             </button>
 
-            {/* Opción No Cumple */}
+            {}
             <button
               type="button"
               onClick={() => updateFormData({ materialCargado: "NO CUMPLE" })}
@@ -85,7 +85,7 @@ export function Paso3MaterialVirtual({ formData, updateFormData }: Paso3Material
           </div>
         </div>
 
-        {/* Campo Opcional: Observaciones */}
+        {}
         <div className="space-y-3">
           <label className="block text-14 font-semibold text-sivac-light flex items-center gap-2">
             <MessageSquare size={16} className="text-sivac-blue-light" />

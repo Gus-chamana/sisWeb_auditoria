@@ -18,8 +18,8 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // Este bloque try-catch captura errores cuando setAll es llamado desde un Server Component,
-            // lo cual es esperado y seguro de ignorar si el middleware refresca la sesión.
+            
+            
           }
         },
       },

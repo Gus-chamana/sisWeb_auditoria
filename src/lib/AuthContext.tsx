@@ -64,7 +64,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       if (dbUser) {
-        const rolName = (dbUser.roles as any)?.nombre as UserRole || "Docente";
+        const dbRol = (dbUser.roles as any)?.nombre;
+        let rolName: UserRole = "Docente";
+        if (dbRol === "Administrador" || dbRol === "Admin") {
+          rolName = "Admin";
+        } else if (dbRol === "Auditor Académico" || dbRol === "Auditor") {
+          rolName = "Auditor";
+        }
         const nombreCompleto = `${dbUser.nombres || ""} ${dbUser.apellidos || ""}`.trim() || session.user.email || "Usuario";
         const iniciales = nombreCompleto
           .split(" ")
@@ -84,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: session.user.email || "",
         });
       } else {
-        // Fallback perfil temporal si no está en la tabla usuarios de la BD pública
+        
         setUser({
           id: "TEMP",
           nombre: session.user.email?.split("@")[0] || "Usuario",

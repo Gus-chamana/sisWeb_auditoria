@@ -5,13 +5,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { LayoutGrid, CheckCircle2, Cloud, RefreshCw, Sun } from "lucide-react";
+import { LayoutGrid, CheckCircle2, Cloud, RefreshCw, Sun, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -45,13 +46,13 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen flex flex-col md:flex-row bg-sivac-bg-primary font-inter">
-      {/* Panel Izquierdo - Branding & Stats */}
+      {}
       <section className="hidden md:flex md:w-1/2 bg-sivac-bg-secondary p-12 lg:p-16 flex-col justify-between relative overflow-hidden border-r border-sivac-border">
-        {/* Decorative Background Glows */}
+        {}
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-sivac-blue/10 blur-[120px] pointer-events-none" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-sivac-indigo/10 blur-[120px] pointer-events-none" />
 
-        {/* Brand Header */}
+        {}
         <div className="flex items-center gap-4 z-10">
           <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-sivac-blue/5 border border-sivac-blue/10 flex items-center justify-center">
             <Image
@@ -73,7 +74,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Hero Copy */}
+        {}
         <div className="my-auto py-12 z-10 max-w-xl">
           <h2 className="font-poppins text-40 lg:text-48 font-bold text-sivac-heading leading-[1.15] tracking-[-0.96px] mb-6">
             Gestión Académica de Alta Precisión.
@@ -83,9 +84,9 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Stats Grid */}
+        {}
         <div className="grid grid-cols-2 gap-4 z-10">
-          {/* Card 1 */}
+          {}
           <GlassCard className="flex flex-col justify-between h-[140px] p-5">
             <div className="flex justify-between items-start">
               <div className="p-2 rounded-lg bg-sivac-indigo/10 text-sivac-indigo">
@@ -102,7 +103,7 @@ export default function LoginPage() {
             </div>
           </GlassCard>
 
-          {/* Card 2 */}
+          {}
           <GlassCard className="flex flex-col justify-between h-[140px] p-5">
             <div className="flex justify-between items-start">
               <div className="p-2 rounded-lg bg-sivac-green-soft/10 text-sivac-green-soft">
@@ -119,7 +120,7 @@ export default function LoginPage() {
             </div>
           </GlassCard>
 
-          {/* Card 3 - Full-width */}
+          {}
           <GlassCard className="col-span-2 flex items-center justify-between p-6">
             <div className="flex items-center gap-4">
               <div className="p-2.5 rounded-lg bg-sivac-blue/10 text-sivac-blue flex-shrink-0">
@@ -141,9 +142,9 @@ export default function LoginPage() {
         </div>
       </section>
 
-      {/* Panel Derecho - Formulario de Acceso */}
+      {}
       <section className="w-full md:w-1/2 flex flex-col justify-between p-8 sm:p-12 md:p-16 lg:p-24 relative">
-        {/* Toggle Mode Button (Top-Right) */}
+        {}
         <div className="self-end z-10">
           <button
             type="button"
@@ -153,7 +154,7 @@ export default function LoginPage() {
           </button>
         </div>
 
-        {/* Login Form Container */}
+        {}
         <div className="my-auto max-w-md w-full mx-auto z-10 py-8">
           <div className="mb-8">
             <h3 className="font-poppins text-32 lg:text-40 font-bold text-sivac-heading mb-2">
@@ -186,21 +187,30 @@ export default function LoginPage() {
               />
             </div>
 
-            <div>
+             <div>
               <label className="block text-12 font-medium text-sivac-muted tracking-wide-06 uppercase mb-2">
                 CONTRASEÑA
               </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="input-login w-full h-[48px] px-4 text-14 tracking-widest"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className={`input-login w-full h-[48px] pl-4 pr-12 text-14 ${showPassword ? "" : "tracking-widest"}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-sivac-muted hover:text-sivac-light transition-colors cursor-pointer"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center justify-between text-14 text-sivac-body">
+            <div className="flex items-center text-14 text-sivac-body">
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -208,12 +218,6 @@ export default function LoginPage() {
                 />
                 <span className="text-14 font-normal">Recordar sesión</span>
               </label>
-              <Link
-                href="/recuperar"
-                className="text-14 font-medium text-sivac-indigo hover:text-sivac-heading transition-colors"
-              >
-                ¿Recuperar contraseña?
-              </Link>
             </div>
 
             <button
@@ -230,7 +234,7 @@ export default function LoginPage() {
           </form>
         </div>
 
-        {/* Footer */}
+        {}
         <div className="text-center z-10">
           <p className="text-14 font-normal text-sivac-body">
             ¿Problemas de acceso?{" "}

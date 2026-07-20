@@ -10,13 +10,24 @@ interface Paso4FormData {
 interface Paso4AsistenciaProps {
   formData: Paso4FormData;
   updateFormData: (fields: Partial<Paso4FormData>) => void;
+  modalidad: string;
 }
 
-export function Paso4Asistencia({ formData, updateFormData }: Paso4AsistenciaProps) {
+export function Paso4Asistencia({ formData, updateFormData, modalidad }: Paso4AsistenciaProps) {
   const { alumnosAmbiente, alumnosIntranet, observacionesAsistencia } = formData;
 
-  // Comprobar diferencia solo si ambos campos tienen un valor numérico ingresado
+  
+  React.useEffect(() => {
+    if (modalidad === "Virtual" && alumnosAmbiente !== "") {
+      updateFormData({ alumnosAmbiente: "" });
+    } else if (modalidad === "Presencial" && alumnosIntranet !== "") {
+      updateFormData({ alumnosIntranet: "" });
+    }
+  }, [modalidad, alumnosAmbiente, alumnosIntranet, updateFormData]);
+
+  
   const tieneDiferencia = 
+    modalidad === "Híbrido" &&
     alumnosAmbiente !== "" && 
     alumnosIntranet !== "" && 
     Number(alumnosAmbiente) !== Number(alumnosIntranet);
@@ -25,7 +36,7 @@ export function Paso4Asistencia({ formData, updateFormData }: Paso4AsistenciaPro
 
   return (
     <div className="space-y-6">
-      {/* Banner Informativo */}
+      {}
       <div className="p-4 rounded-lg bg-sivac-blue/10 border border-sivac-blue/30 text-sivac-indigo-light flex gap-3 items-start">
         <Info size={18} strokeWidth={2.5} className="flex-shrink-0 mt-0.5 text-sivac-blue-light" />
         <div className="text-13 leading-relaxed">
@@ -33,51 +44,67 @@ export function Paso4Asistencia({ formData, updateFormData }: Paso4AsistenciaPro
         </div>
       </div>
 
-      {/* Tarjeta Principal de Asistencia */}
+      {}
       <div className="glass-card p-6 sm:p-8 space-y-6 rounded-xl bg-white/5 border border-white/10">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           
-          {/* Input 1: Alumnos en Ambiente */}
+          {}
           <div className="space-y-2">
             <label className="block text-14 font-semibold text-sivac-light flex items-center gap-2">
               <Users size={16} className="text-sivac-blue-light" />
               Alumnos en Ambiente (Físico)
+              {modalidad === "Virtual" && (
+                <span className="text-11 font-medium text-orange-400 normal-case">(No aplica en Virtual)</span>
+              )}
             </label>
             <input
               type="number"
               min="0"
-              value={alumnosAmbiente}
+              disabled={modalidad === "Virtual"}
+              value={modalidad === "Virtual" ? "" : alumnosAmbiente}
               onChange={(e) => {
                 const val = e.target.value === "" ? "" : Math.max(0, parseInt(e.target.value, 10));
                 updateFormData({ alumnosAmbiente: val });
               }}
-              placeholder="Ej. 28"
-              className="w-full h-[46px] px-4 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-sivac-light text-14 outline-none focus:border-sivac-blue placeholder:text-sivac-muted transition-colors"
+              placeholder={modalidad === "Virtual" ? "N/A" : "Ej. 28"}
+              className={`w-full h-[46px] px-4 rounded-lg text-sivac-light text-14 outline-none transition-all ${
+                modalidad === "Virtual"
+                  ? "bg-white/5 border border-white/5 text-sivac-muted cursor-not-allowed"
+                  : "bg-sivac-bg-input-admin border border-white/10 focus:border-sivac-blue placeholder:text-sivac-muted"
+              }`}
             />
           </div>
 
-          {/* Input 2: Alumnos en Intranet */}
+          {}
           <div className="space-y-2">
             <label className="block text-14 font-semibold text-sivac-light flex items-center gap-2">
               <BookOpen size={16} className="text-sivac-blue-light" />
               Alumnos en Intranet (Marcados)
+              {modalidad === "Presencial" && (
+                <span className="text-11 font-medium text-orange-400 normal-case">(No aplica en Presencial)</span>
+              )}
             </label>
             <input
               type="number"
               min="0"
-              value={alumnosIntranet}
+              disabled={modalidad === "Presencial"}
+              value={modalidad === "Presencial" ? "" : alumnosIntranet}
               onChange={(e) => {
                 const val = e.target.value === "" ? "" : Math.max(0, parseInt(e.target.value, 10));
                 updateFormData({ alumnosIntranet: val });
               }}
-              placeholder="Ej. 30"
-              className="w-full h-[46px] px-4 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-sivac-light text-14 outline-none focus:border-sivac-blue placeholder:text-sivac-muted transition-colors"
+              placeholder={modalidad === "Presencial" ? "N/A" : "Ej. 30"}
+              className={`w-full h-[46px] px-4 rounded-lg text-sivac-light text-14 outline-none transition-all ${
+                modalidad === "Presencial"
+                  ? "bg-white/5 border border-white/5 text-sivac-muted cursor-not-allowed"
+                  : "bg-sivac-bg-input-admin border border-white/10 focus:border-sivac-blue placeholder:text-sivac-muted"
+              }`}
             />
           </div>
 
         </div>
 
-        {/* Banner de alerta de diferencia (Regla de negocio) */}
+        {}
         {tieneDiferencia && (
           <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 flex gap-3 items-center animate-pulse">
             <AlertTriangle size={20} className="flex-shrink-0" />
@@ -87,7 +114,7 @@ export function Paso4Asistencia({ formData, updateFormData }: Paso4AsistenciaPro
           </div>
         )}
 
-        {/* Observaciones Generales de Asistencia */}
+        {}
         <div className="space-y-3">
           <label className="block text-14 font-semibold text-sivac-light">
             Observaciones de Asistencia (Opcional)

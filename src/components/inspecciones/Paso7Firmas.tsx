@@ -6,7 +6,7 @@ interface Paso7FormData {
   asignatura: string;
   aula: string;
   sedeFilial: string;
-  firmaDocenteUrl: string; // Guardará la representación base64 de la firma
+  firmaDocenteUrl: string; 
 }
 
 interface Paso7FirmasProps {
@@ -19,7 +19,7 @@ export function Paso7Firmas({ formData, updateFormData }: Paso7FirmasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
 
-  // Inicializar o restaurar canvas si ya existe una firma guardada
+  
   useEffect(() => {
     const canvas = canvasRef.current;
     if (canvas) {
@@ -30,7 +30,7 @@ export function Paso7Firmas({ formData, updateFormData }: Paso7FirmasProps) {
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
 
-        // Si ya hay una firma guardada en el estado, la dibuja
+        
         if (firmaDocenteUrl) {
           const img = new Image();
           img.onload = () => {
@@ -43,7 +43,7 @@ export function Paso7Firmas({ formData, updateFormData }: Paso7FirmasProps) {
     }
   }, [firmaDocenteUrl]);
 
-  // Funciones para dibujar en el Canvas (Mouse y Touch)
+  
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -96,7 +96,7 @@ export function Paso7Firmas({ formData, updateFormData }: Paso7FirmasProps) {
     if (!isDrawing) return;
     setIsDrawing(false);
     
-    // Guardar firma automáticamente en base64 en el formData
+    
     const canvas = canvasRef.current;
     if (canvas) {
       const dataUrl = canvas.toDataURL();
@@ -117,7 +117,7 @@ export function Paso7Firmas({ formData, updateFormData }: Paso7FirmasProps) {
 
   return (
     <div className="space-y-6">
-      {/* Banner Informativo */}
+      {}
       <div className="p-4 rounded-lg bg-sivac-blue/10 border border-sivac-blue/30 text-sivac-indigo-light flex gap-3 items-start">
         <Info size={18} strokeWidth={2.5} className="flex-shrink-0 mt-0.5 text-sivac-blue-light" />
         <div className="text-13 leading-relaxed">
@@ -127,7 +127,7 @@ export function Paso7Firmas({ formData, updateFormData }: Paso7FirmasProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         
-        {/* Resumen Visual (2 columnas de ancho) */}
+        {}
         <div className="glass-card p-6 rounded-xl bg-white/5 border border-white/10 md:col-span-2 space-y-4 flex flex-col justify-between">
           <div className="space-y-4">
             <h3 className="text-15 font-bold text-sivac-light flex items-center gap-2 border-b border-white/5 pb-3">
@@ -176,7 +176,7 @@ export function Paso7Firmas({ formData, updateFormData }: Paso7FirmasProps) {
           </div>
         </div>
 
-        {/* Firma Digital Interactiva (3 columnas de ancho) */}
+        {}
         <div className="glass-card p-6 rounded-xl bg-white/5 border border-white/10 md:col-span-3 space-y-4">
           <div className="flex justify-between items-center border-b border-white/5 pb-3">
             <h3 className="text-15 font-bold text-sivac-light flex items-center gap-2">
@@ -194,7 +194,7 @@ export function Paso7Firmas({ formData, updateFormData }: Paso7FirmasProps) {
             </button>
           </div>
 
-          {/* Lienzo para firmar con el mouse/dedo */}
+          {}
           <div className="relative bg-sivac-bg-input-admin border border-white/10 rounded-lg overflow-hidden h-[180px] flex items-center justify-center cursor-crosshair group shadow-inner">
             <canvas
               ref={canvasRef}

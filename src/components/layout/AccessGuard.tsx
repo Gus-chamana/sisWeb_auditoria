@@ -33,7 +33,7 @@ export function AccessGuard({ children, allowedRoles }: AccessGuardProps) {
 
   return (
     <div className="flex flex-col items-center justify-center text-center p-8 my-auto min-h-[60vh] space-y-6 font-inter">
-      {/* Icon Shield Accent */}
+      {}
       <div className="w-20 h-20 rounded-2xl bg-red-500/10 border border-red-500/20 text-sivac-red-light flex items-center justify-center shadow-xl shadow-red-500/5 animate-pulse">
         <ShieldAlert size={40} />
       </div>

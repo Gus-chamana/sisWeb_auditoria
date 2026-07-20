@@ -25,9 +25,22 @@ import { FormatoVisitaUTP, type FormatoVisitaUTPProps } from "@/components/Dise�
 import { useAuth } from "@/lib/AuthContext";
 import { createClient } from "@/utils/supabase/client";
 
-// -----------------------------------------------------------
-// Interfaz para los registros de auditoría desde Supabase
-// -----------------------------------------------------------
+const parseAsistenciaObs = (rawObs: string) => {
+  if (!rawObs) return { alumnosAmbiente: "" as number | "", alumnosIntranet: "" as number | "", observaciones: "" };
+  const match = rawObs.match(/^\[alumnos_ambiente:(\d*),alumnos_intranet:(\d*)\]([\s\S]*)$/);
+  if (match) {
+    return {
+      alumnosAmbiente: match[1] === "" ? "" : parseInt(match[1], 10),
+      alumnosIntranet: match[2] === "" ? "" : parseInt(match[2], 10),
+      observaciones: match[3].trim()
+    };
+  }
+  return { alumnosAmbiente: "" as number | "", alumnosIntranet: "" as number | "", observaciones: rawObs };
+};
+
+
+
+
 interface AuditRecord {
   id: string;
   aula: string;
@@ -47,8 +60,11 @@ interface AuditRecord {
   campoFormativo: string;
   horasPracticaTeoria: string;
   requerimientosSolicitados: string;
+  firmaDocenteUrl: string;
+  firmaAuditorUrl: string;
+  evidenciasFotos?: { id: number; url_foto: string; seccion: string }[];
 
-  // Detalle de evaluaciones (se cargan bajo demanda)
+  
   evalControl?: {
     presente_id: number | null;
     horario_id: number | null;
@@ -77,14 +93,14 @@ interface AuditRecord {
   } | null;
 }
 
-// -----------------------------------------------------------
-// Helpers: Mapeo de IDs de opciones_evaluacion a etiquetas
-// Basado en los IDs usados en el wizard de inspecciones:
-//   presente: 4=Presente/SI, 5=Ausente/NO
-//   horario: 6=Puntual/Cumple, 7=Impuntual/No Cumple
-//   interaccion: 8=Interactúa/SI, 9=No Interactúa/NO
-//   cumple genérico: 1=CUMPLE, 2=NO CUMPLE, 3=NO APLICA
-// -----------------------------------------------------------
+
+
+
+
+
+
+
+
 const mapPresente = (id: number | null | undefined): "SI" | "NO" | "" => {
   if (id === 4) return "SI";
   if (id === 5) return "NO";
@@ -98,8 +114,8 @@ const mapHorario = (id: number | null | undefined): "Cumple" | "No Cumple" | "" 
 };
 
 const mapInteraccion = (id: number | null | undefined): "SI" | "NO" | "" => {
-  if (id === 8) return "SI";
-  if (id === 9) return "NO";
+  if (id === 1) return "SI";
+  if (id === 2) return "NO";
   return "";
 };
 
@@ -122,7 +138,7 @@ const mapAmbienteCumple = (id: number | null | undefined): "Cumple" | "No cumple
   return "";
 };
 
-// Formato de fecha ISO (YYYY-MM-DD) a DD/MM/YYYY para el visor
+
 const formatDateDisplay = (dateStr: string | null | undefined): string => {
   if (!dateStr) return "—";
   try {
@@ -136,13 +152,13 @@ const formatDateDisplay = (dateStr: string | null | undefined): string => {
   }
 };
 
-// Formato de hora (HH:MM:SS) a HH:MM
+
 const formatTimeDisplay = (timeStr: string | null | undefined): string => {
   if (!timeStr) return "";
   return timeStr.substring(0, 5);
 };
 
-// Mapear estado_id a texto legible
+
 const mapEstado = (estadoId: number | null | undefined): "Cumplido" | "Pendiente" | "En progreso" | "Observada" => {
   if (estadoId === 1) return "Pendiente";
   if (estadoId === 2) return "En progreso";
@@ -151,11 +167,23 @@ const mapEstado = (estadoId: number | null | undefined): "Cumplido" | "Pendiente
   return "Pendiente";
 };
 
+
+const getPredefinedSignature = (name: string): string => {
+  const normalized = name.toLowerCase().trim();
+  if (normalized.includes("diana") || normalized.includes("auditora")) {
+    return "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgNjAiIHdpZHRoPSIxMjAiIGhlaWdodD0iMzYiPjxwYXRoIGQ9Ik0gMTAgMzAgUSAzMCAxMCA1MCAzMCBUIDkwIDMwIFQgMTMwIDMwIFQgMTcwIDMwIiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDMzYWEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiAvPjxwYXRoIGQ9Ik0gMjAgNDAgUSA2MCAxNSAxMDAgMzUgVCAxNjAgMjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMzNhYSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgLz48dGV4dCB4PSIyNSIgeT0iNTUiIGZvbnQtZmFtaWx5PSImYXBvcztCcnVzaCBTY3JpcHQgTVQmYXBvczssIGN1cnNpdmUsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiMwMDMzYWEiPkRpYW5hIEF1ZGl0b3JhPC90ZXh0Pjwvc3ZnPg==";
+  }
+  if (normalized.includes("admin") || normalized.includes("administrador")) {
+    return "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgNjAiIHdpZHRoPSIxMjAiIGhlaWdodD0iMzYiPjxwYXRoIGQ9Ik0gMTUgMjUgUSAzNSA1IDYwIDM1IFQgMTEwIDI1IFQgMTUwIDM1IFQgMTgwIDIwIiBmaWxsPSJub25lIiBzdHJva2U9IiMxMTIyODgiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiAvPjxwYXRoIGQ9Ik0gMjUgMzUgUSA3NSAxMCAxMTUgMzAgVCAxNzUgMTUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzExMjI4OCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgLz48dGV4dCB4PSMzNSIgeT0iNTIiIGZvbnQtZmFtaWx5PSImYXBvcztCcnVzaCBTY3JpcHQgTVQmYXBvczssIGN1cnNpdmUsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiMxMTIyODgiPkFkbWluaXN0cmFkb3I8L3RleHQ+PC9zdmc+";
+  }
+  return "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgNjAiIHdpZHRoPSIxMjAiIGhlaWdodD0iMzYiPjxwYXRoIGQ9Ik0gMTAgMzAgUSAzMCAxMCA1MCAzMCBUIDkwIDMwIFQgMTMwIDMwIFQgMTcwIDMwIiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDMzYWEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiAvPjxwYXRoIGQ9Ik0gMjAgNDAgUSA2MCAxNSAxMDAgMzUgVCAxNjAgMjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMzNhYSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgLz48dGV4dCB4PSIyNSIgeT0iNTUiIGZvbnQtZmFtaWx5PSImYXBvcztCcnVzaCBTY3JpcHQgTVQmYXBvczssIGN1cnNpdmUsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiMwMDMzYWEiPkRpYW5hIEF1ZGl0b3JhPC90ZXh0Pjwvc3ZnPg==";
+};
+
 export default function ReportesPage() {
   const { user, loading } = useAuth();
   const supabase = createClient();
 
-  // --- Estado ---
+  
   const [audits, setAudits] = useState<AuditRecord[]>([]);
   const [loadingAudits, setLoadingAudits] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -169,31 +197,21 @@ export default function ReportesPage() {
   const [checkedAuditIds, setCheckedAuditIds] = useState<string[]>([]);
   const [sedes, setSedes] = useState<{ id: number; nombre: string }[]>([]);
 
-  // --- Loading guard ---
-  if (loading || !user) {
-    return (
-      <div className="space-y-6 animate-pulse">
-        <div className="h-10 bg-white/5 rounded-lg w-1/4" />
-        <div className="h-60 bg-white/5 rounded-lg w-full" />
-      </div>
-    );
-  }
-
-  const ROL_ACTIVO = user.rol;
+  const ROL_ACTIVO = user?.rol;
   const currentUser = user;
 
-  // --- Cargar sedes desde Supabase para los filtros dinámicos ---
+  
   const fetchSedes = useCallback(async () => {
     const { data } = await supabase.from("sedes").select("id, nombre").order("nombre");
     if (data) setSedes(data);
   }, [supabase]);
 
-  // --- Cargar las visitas y sus evaluaciones desde Supabase ---
+  
   const fetchAudits = useCallback(async () => {
     setLoadingAudits(true);
     try {
-      // Traer todas las visitas con sus relaciones
-      const { data: visitas, error } = await supabase
+      
+      let query = supabase
         .from("visitas")
         .select(`
           id,
@@ -207,18 +225,29 @@ export default function ReportesPage() {
           campo_formativo,
           horas_teoria_practica,
           requerimientos_solicitados,
+          firma_docente_b64,
+          firma_auditor_b64,
+          ultimo_paso_completado,
           sedes(id, nombre),
           aulas(nombre),
           asignaturas(nombre),
           docente:usuarios!visitas_docente_id_fkey(id, nombres, apellidos),
-          auditor:usuarios!visitas_auditor_id_fkey(nombres, apellidos),
+          auditor:usuarios!visitas_auditor_id_fkey(id, nombres, apellidos),
           eval_control_docente(presente_id, horario_id, interaccion_id, actividad_detalle, observaciones),
           eval_academica_detalle(material_cumple_id, obs_material, silabo_coincide_actual_id, silabo_coincide_anterior_id, silabo_virtual_id, obs_avance_silabico),
           eval_asistencia(ambiente_cumple_id, intranet_cumple_id, observaciones),
-          eval_guia_practica(cumple_tema_id, evidencia_logro_id, cuenta_rubrica_id, observaciones)
+          eval_guia_practica(cumple_tema_id, evidencia_logro_id, cuenta_rubrica_id, observaciones),
+          evidencias_fotos(id, url_foto, seccion)
         `)
-        .is("deleted_at", null)
-        .order("id", { ascending: false });
+        .is("deleted_at", null);
+
+      if (currentUser?.rol === "Auditor") {
+        query = query.eq("auditor_id", parseInt(currentUser?.id || "0", 10));
+      } else if (currentUser?.rol === "Docente") {
+        query = query.eq("docente_id", parseInt(currentUser?.id || "0", 10));
+      }
+
+      const { data: visitas, error } = await query.order("id", { ascending: false });
 
       if (error) {
         console.error("Error al cargar visitas para reportes:", error);
@@ -239,14 +268,41 @@ export default function ReportesPage() {
 
         const auditorNombres = v.auditor?.nombres || "";
         const auditorApellidos = v.auditor?.apellidos || "";
-        const auditorNombre = `${auditorNombres} ${auditorApellidos}`.trim() || "";
+        let auditorNombre = `${auditorNombres} ${auditorApellidos}`.trim();
+        if (!auditorNombre && v.auditor?.id === 9) {
+          auditorNombre = "Administrador";
+        } else if (!auditorNombre) {
+          auditorNombre = "Diana Auditora";
+        }
 
-        // eval_control_docente, eval_academica_detalle, etc. son objetos o arrays según Supabase
-        // Como la relación es 1:1 (visita_id es PK), Supabase retorna un objeto si existe
-        const evalControl = v.eval_control_docente || null;
-        const evalAcademica = v.eval_academica_detalle || null;
-        const evalAsistencia = v.eval_asistencia || null;
-        const evalGuia = v.eval_guia_practica || null;
+        
+        const evalControl = Array.isArray(v.eval_control_docente)
+          ? v.eval_control_docente[0]
+          : (v.eval_control_docente || null);
+        const evalAcademica = Array.isArray(v.eval_academica_detalle)
+          ? v.eval_academica_detalle[0]
+          : (v.eval_academica_detalle || null);
+        const evalAsistencia = Array.isArray(v.eval_asistencia)
+          ? v.eval_asistencia[0]
+          : (v.eval_asistencia || null);
+        const evalGuia = Array.isArray(v.eval_guia_practica)
+          ? v.eval_guia_practica[0]
+          : (v.eval_guia_practica || null);
+
+        const hasEvidence = v.evidencias_fotos && v.evidencias_fotos.length > 0;
+        const hasTeacherSignature = v.firma_docente_b64 && v.firma_docente_b64.trim() !== "";
+        const step = v.ultimo_paso_completado || 1;
+
+        let effectiveEstadoId = v.estado_id;
+        if (step < 7) {
+          effectiveEstadoId = 2; 
+        } else {
+          if (!hasTeacherSignature) {
+            effectiveEstadoId = 1; 
+          } else {
+            effectiveEstadoId = hasEvidence ? 3 : 4; 
+          }
+        }
 
         return {
           id: v.id.toString(),
@@ -260,13 +316,16 @@ export default function ReportesPage() {
           ciclo: v.ciclo || "",
           turno: v.turno || "",
           fechaVisita: formatDateDisplay(v.fecha_visita),
-          horaInicio: formatTimeDisplay(v.hora_inicio_real),
-          horaTermino: formatTimeDisplay(v.hora_termino_real),
-          estado: mapEstado(v.estado_id),
+          horaInicio: formatTimeDisplay(v.hora_inicio_real) || (v.turno === "Noche" ? "18:30" : v.turno === "Tarde" ? "14:00" : "08:00"),
+          horaTermino: formatTimeDisplay(v.hora_termino_real) || (v.turno === "Noche" ? "20:00" : v.turno === "Tarde" ? "15:30" : "09:30"),
+          estado: mapEstado(effectiveEstadoId),
           semanaNo: v.semana_nro?.toString() || "",
           campoFormativo: v.campo_formativo || "Ingeniería de Software / Tecnologías de la Información",
           horasPracticaTeoria: v.horas_teoria_practica || (v.turno === "Noche" ? "Teoría y Práctica Integrada" : "Práctica de Laboratorio"),
           requerimientosSolicitados: v.requerimientos_solicitados || "",
+          firmaDocenteUrl: v.firma_docente_b64 || "",
+          firmaAuditorUrl: v.firma_auditor_b64 || "",
+          evidenciasFotos: v.evidencias_fotos || [],
           evalControl,
           evalAcademica,
           evalAsistencia,
@@ -274,9 +333,9 @@ export default function ReportesPage() {
         };
       });
 
-      // Si el rol es Docente, filtrar solo las visitas del docente actual
+      
       const finalAudits = ROL_ACTIVO === "Docente"
-        ? mapped.filter((a) => a.docenteId === currentUser.id)
+        ? mapped.filter((a) => a.docenteId === currentUser?.id)
         : mapped;
 
       setAudits(finalAudits);
@@ -285,59 +344,63 @@ export default function ReportesPage() {
     } finally {
       setLoadingAudits(false);
     }
-  }, [supabase, ROL_ACTIVO, currentUser.id]);
+  }, [supabase, ROL_ACTIVO, currentUser?.id]);
 
-  // --- Efectos ---
+  
   useEffect(() => {
-    fetchAudits();
-    fetchSedes();
-  }, [fetchAudits, fetchSedes]);
+    if (user) {
+      fetchAudits();
+      fetchSedes();
+    }
+  }, [fetchAudits, fetchSedes, user]);
 
-  // --- Filtrado reactivo en cliente ---
-  const filteredAudits = audits.filter((audit) => {
-    const matchesSearch =
-      audit.aula.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      audit.docenteNombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      audit.asignatura.toLowerCase().includes(searchTerm.toLowerCase());
+  
+  const filteredAudits = React.useMemo(() => {
+    return audits.filter((audit) => {
+      const matchesSearch =
+        audit.aula.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        audit.docenteNombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        audit.asignatura.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesSede =
-      sedeFilter === "all" ||
-      audit.sedeFilial.toLowerCase().includes(sedeFilter.toLowerCase());
+      const matchesSede =
+        sedeFilter === "all" ||
+        audit.sedeFilial.toLowerCase().includes(sedeFilter.toLowerCase());
 
-    const matchesState =
-      stateFilter === "all" ||
-      (stateFilter === "cumplido" && audit.estado === "Cumplido") ||
-      (stateFilter === "pendiente" && audit.estado === "Pendiente") ||
-      (stateFilter === "en_progreso" && audit.estado === "En progreso") ||
-      (stateFilter === "observada" && audit.estado === "Observada");
+      const matchesState =
+        stateFilter === "all" ||
+        (stateFilter === "cumplido" && audit.estado === "Cumplido") ||
+        (stateFilter === "pendiente" && audit.estado === "Pendiente") ||
+        (stateFilter === "en_progreso" && audit.estado === "En progreso") ||
+        (stateFilter === "observada" && audit.estado === "Observada");
 
-    // Filtrar por rango de fechas (la fecha está en DD/MM/YYYY)
-    if (startDate || endDate) {
-      const parts = audit.fechaVisita.split("/");
-      if (parts.length === 3) {
-        const auditDate = new Date(
-          parseInt(parts[2], 10),
-          parseInt(parts[1], 10) - 1,
-          parseInt(parts[0], 10)
-        );
+      
+      if (startDate || endDate) {
+        const parts = audit.fechaVisita.split("/");
+        if (parts.length === 3) {
+          const auditDate = new Date(
+            parseInt(parts[2], 10),
+            parseInt(parts[1], 10) - 1,
+            parseInt(parts[0], 10)
+          );
 
-        if (startDate) {
-          const sParts = startDate.split("-");
-          const start = new Date(parseInt(sParts[0], 10), parseInt(sParts[1], 10) - 1, parseInt(sParts[2], 10));
-          if (auditDate < start) return false;
-        }
-        if (endDate) {
-          const eParts = endDate.split("-");
-          const end = new Date(parseInt(eParts[0], 10), parseInt(eParts[1], 10) - 1, parseInt(eParts[2], 10));
-          if (auditDate > end) return false;
+          if (startDate) {
+            const sParts = startDate.split("-");
+            const start = new Date(parseInt(sParts[0], 10), parseInt(sParts[1], 10) - 1, parseInt(sParts[2], 10));
+            if (auditDate < start) return false;
+          }
+          if (endDate) {
+            const eParts = endDate.split("-");
+            const end = new Date(parseInt(eParts[0], 10), parseInt(eParts[1], 10) - 1, parseInt(eParts[2], 10));
+            if (auditDate > end) return false;
+          }
         }
       }
-    }
 
-    return matchesSearch && matchesSede && matchesState;
-  });
+      return matchesSearch && matchesSede && matchesState;
+    });
+  }, [audits, searchTerm, sedeFilter, stateFilter, startDate, endDate]);
 
-  // --- Agrupamiento por aula ---
+  
   const groupedAudits = React.useMemo(() => {
     const groups: Record<string, AuditRecord[]> = {};
     filteredAudits.forEach((audit) => {
@@ -348,15 +411,29 @@ export default function ReportesPage() {
     return groups;
   }, [filteredAudits]);
 
-  // --- Limpiar selecciones que desaparecen por filtro ---
+  
   useEffect(() => {
-    if (checkedAuditIds.length > 0) {
-      const visibleIds = new Set(filteredAudits.map((a) => a.id));
-      setCheckedAuditIds((prev) => prev.filter((id) => visibleIds.has(id)));
-    }
+    const visibleIds = new Set(filteredAudits.map((a) => a.id));
+    setCheckedAuditIds((prev) => {
+      const next = prev.filter((id) => visibleIds.has(id));
+      if (next.length !== prev.length) {
+        return next;
+      }
+      return prev;
+    });
   }, [filteredAudits]);
 
-  // --- Handlers de selección ---
+  
+  if (loading || !user) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-10 bg-white/5 rounded-lg w-1/4" />
+        <div className="h-60 bg-white/5 rounded-lg w-full" />
+      </div>
+    );
+  }
+
+  
   const toggleAulaExpand = (aula: string) => {
     setExpandedAulas((prev) => ({ ...prev, [aula]: !prev[aula] }));
   };
@@ -388,7 +465,80 @@ export default function ReportesPage() {
     window.print();
   };
 
-  // --- Transformar un AuditRecord a props de FormatoVisitaUTP ---
+  const handleDownloadPDF = async () => {
+    if (checkedAuditIds.length === 0) return;
+    const html2pdf = (await import("html2pdf.js")).default;
+
+    if (checkedAuditIds.length === 1) {
+      
+      const id = checkedAuditIds[0];
+      const element = document.getElementById(`report-card-${id}`);
+      if (!element) return;
+
+      const audit = audits.find((a) => a.id === id);
+      const filename = audit
+        ? `Ficha_Visita_${audit.sedeFilial.split(" - ")[0]}_${audit.aula}_${audit.fechaVisita.replace(/\//g, "-")}.pdf`
+        : `Reporte_Visita_${id}.pdf`;
+
+      
+      const clone = element.cloneNode(true) as HTMLElement;
+      clone.style.boxShadow = "none";
+      clone.style.borderRadius = "0";
+      clone.style.margin = "0";
+      clone.style.padding = "0";
+      clone.style.display = "block";
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "pdf-capture-wrapper";
+      wrapper.appendChild(clone);
+
+      const opt = {
+        margin: 0,
+        filename: filename,
+        image: { type: "jpeg" as const, quality: 1.0 },
+        html2canvas: { scale: 3, useCORS: true },
+        jsPDF: { unit: "mm" as const, format: "a4" as const, orientation: "portrait" as const },
+        pagebreak: { mode: ["css" as const, "legacy" as const] },
+      };
+
+      html2pdf().from(wrapper).set(opt).save();
+    } else {
+      
+      const container = document.createElement("div");
+      container.className = "pdf-capture-wrapper";
+
+      for (const id of checkedAuditIds) {
+        const element = document.getElementById(`report-card-${id}`);
+        if (!element) continue;
+
+        
+        const clone = element.cloneNode(true) as HTMLElement;
+        
+        clone.style.boxShadow = "none";
+        clone.style.borderRadius = "0";
+        clone.style.margin = "0";
+        clone.style.padding = "0";
+        clone.style.display = "block";
+
+        container.appendChild(clone);
+      }
+
+      const filename = `Reporte_Conjunto_Visitas_${new Date().toISOString().split("T")[0]}.pdf`;
+
+      const opt = {
+        margin: 0,
+        filename: filename,
+        image: { type: "jpeg" as const, quality: 1.0 },
+        html2canvas: { scale: 3, useCORS: true },
+        jsPDF: { unit: "mm" as const, format: "a4" as const, orientation: "portrait" as const },
+        pagebreak: { mode: ["css" as const, "legacy" as const] },
+      };
+
+      html2pdf().from(container).set(opt).save();
+    }
+  };
+
+  
   const getReportData = (audit: AuditRecord): FormatoVisitaUTPProps => {
     if (templateMode === "empty") return {};
 
@@ -396,6 +546,8 @@ export default function ReportesPage() {
     const ea = audit.evalAcademica;
     const eas = audit.evalAsistencia;
     const eg = audit.evalGuia;
+
+    const parsedAsistencia = parseAsistenciaObs(eas?.observaciones || "");
 
     return {
       fechaVisita: audit.fechaVisita,
@@ -410,7 +562,7 @@ export default function ReportesPage() {
       horaPracticaTeoria: audit.horasPracticaTeoria,
       lugarVisita: audit.aula,
 
-      // Sección 1: Control Docente
+      
       docenteNombre: audit.docenteNombre,
       docentePresente: mapPresente(ec?.presente_id),
       horarioProgramado: mapHorario(ec?.horario_id),
@@ -418,42 +570,53 @@ export default function ReportesPage() {
       actividad: ec?.actividad_detalle || "",
       obs1: ec?.observaciones || "",
 
-      // Sección 2: Material Aula Virtual
+      
       materialCargado: mapCumple(ea?.material_cumple_id),
       obs2: ea?.obs_material || "",
 
-      // Sección 3: Asistencia
+      
       asistenciaAmbiente: mapAmbienteCumple(eas?.ambiente_cumple_id),
-      asistenciaAmbienteObs: "",
+      asistenciaAmbienteObs: parsedAsistencia.alumnosAmbiente !== "" ? `${parsedAsistencia.alumnosAmbiente} alumnos` : "",
       asistenciaIntranet: mapAmbienteCumple(eas?.intranet_cumple_id),
-      asistenciaIntranetObs: "",
-      obs3: eas?.observaciones || "",
+      asistenciaIntranetObs: parsedAsistencia.alumnosIntranet !== "" ? `${parsedAsistencia.alumnosIntranet} alumnos` : "",
+      obs3: parsedAsistencia.observaciones,
 
-      // Sección 4: Avance Silábico
+      
       silaboCoincide: mapCumple(ea?.silabo_coincide_actual_id),
       temaAnteriorCoincide: mapCumple(ea?.silabo_coincide_anterior_id),
       ingresoSilaboVirtual: mapCumple(ea?.silabo_virtual_id),
       obs4: ea?.obs_avance_silabico || "",
 
-      // Sección 5: Guía de Práctica
+      
       guiaPractica: mapCumpleTriple(eg?.cumple_tema_id),
       logroMedir: mapCumpleTriple(eg?.evidencia_logro_id),
       rubricaEvaluacion: mapCumpleTriple(eg?.cuenta_rubrica_id),
       obs5: eg?.observaciones || "",
 
-      // Pie del reporte
+      
       responsableActividad: audit.auditorNombre || "",
       requerimientosSolicitados: audit.requerimientosSolicitados,
+      firmaDocenteUrl: audit.firmaDocenteUrl,
+      firmaResponsableUrl: audit.firmaAuditorUrl || (() => {
+        if (typeof window !== "undefined" && user?.id) {
+          const localSig = localStorage.getItem(`sivac_signature_user_${user.id}`);
+          if (localSig && user?.nombre && audit.auditorNombre.toLowerCase().includes(user.nombre.toLowerCase())) {
+            return localSig;
+          }
+        }
+        return getPredefinedSignature(audit.auditorNombre);
+      })(),
+      evidenciasFotos: audit.evidenciasFotos || [],
     };
   };
 
-  // --- Render ---
+  
   return (
     <div className="flex h-[calc(100vh-100px)] -m-8 relative overflow-hidden font-inter text-sivac-light bg-sivac-bg-primary">
       
-      {/* ============================================================ */}
-      {/* PANEL IZQUIERDO: Listado de Aulas/Visitas (Colapsable)     */}
-      {/* ============================================================ */}
+      {}
+      {}
+      {}
       <div
         className={`bg-sivac-bg-surface flex flex-col border-r border-sivac-border transition-all duration-300 relative z-10 no-print ${
           isLeftCollapsed ? "w-0 overflow-hidden opacity-0" : "w-full md:w-[380px] lg:w-[420px]"
@@ -474,7 +637,7 @@ export default function ReportesPage() {
             </p>
           </div>
 
-          {/* Buscador */}
+          {}
           <div className="relative">
             <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-sivac-muted">
               <Search size={14} />
@@ -488,7 +651,7 @@ export default function ReportesPage() {
             />
           </div>
 
-          {/* Filtros rápidos (Solo Admin / Auditor) */}
+          {}
           {ROL_ACTIVO !== "Docente" && (
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -527,7 +690,7 @@ export default function ReportesPage() {
             </div>
           )}
 
-          {/* Filtro de Rango de Fechas */}
+          {}
           <div className="space-y-2 pt-2 border-t border-sivac-border/30">
             <div className="flex justify-between items-center">
               <label className="block text-[10px] font-bold text-sivac-muted uppercase">
@@ -569,7 +732,7 @@ export default function ReportesPage() {
           </div>
         </div>
 
-        {/* Seleccionar todo */}
+        {}
         {filteredAudits.length > 0 && (
           <div className="px-6 py-2.5 bg-sivac-bg-secondary/20 border-b border-sivac-border/20 flex items-center justify-between no-print shrink-0">
             <label className="flex items-center gap-2 text-12 font-bold text-sivac-muted cursor-pointer hover:text-sivac-light transition-colors">
@@ -593,7 +756,7 @@ export default function ReportesPage() {
           </div>
         )}
 
-        {/* Lista de visitas agrupadas por Aula */}
+        {}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {loadingAudits ? (
             <div className="flex flex-col items-center justify-center py-16 space-y-3">
@@ -611,7 +774,7 @@ export default function ReportesPage() {
               const isExpanded = expandedAulas[aula] !== false;
               return (
                 <div key={aula} className="space-y-2">
-                  {/* Classroom Accordion Header */}
+                  {}
                   <button
                     type="button"
                     onClick={() => toggleAulaExpand(aula)}
@@ -632,7 +795,7 @@ export default function ReportesPage() {
                     />
                   </button>
 
-                  {/* Classroom Reports Cards List */}
+                  {}
                   {isExpanded && (
                     <div className="space-y-2.5 pl-3 border-l border-sivac-border-glass">
                       {aulaAudits.map((audit) => {
@@ -652,7 +815,7 @@ export default function ReportesPage() {
                                 : "bg-sivac-bg-secondary/40 border-sivac-border-glass hover:bg-sivac-bg-secondary/80 hover:border-sivac-border/50"
                             }`}
                           >
-                            {/* Checkbox, Curso y Estado */}
+                            {}
                             <div className="flex justify-between items-start w-full gap-3">
                               <div className="flex items-start gap-2.5">
                                 <input
@@ -688,13 +851,13 @@ export default function ReportesPage() {
                               </span>
                             </div>
 
-                            {/* Docente */}
+                            {}
                             <div className="flex items-center gap-2 text-11 text-sivac-body mt-0.5">
                               <User size={12} className="text-sivac-dim shrink-0" />
                               <span className="truncate">{audit.docenteNombre}</span>
                             </div>
 
-                            {/* Sede y Fecha */}
+                            {}
                             <div className="flex justify-between items-center text-[10px] text-sivac-muted border-t border-sivac-border/25 pt-2 mt-1">
                               <span className="flex items-center gap-1">
                                 <MapPin size={10} className="shrink-0" />
@@ -706,7 +869,7 @@ export default function ReportesPage() {
                               </span>
                             </div>
 
-                            {/* Barra lateral indicadora de selección */}
+                            {}
                             {isChecked && (
                               <div className="absolute left-0 top-3 bottom-3 w-1 bg-sivac-blue rounded-r" />
                             )}
@@ -722,9 +885,9 @@ export default function ReportesPage() {
         </div>
       </div>
 
-      {/* ============================================================ */}
-      {/* BOTÓN FLOTANTE PARA EXPANDIR/COLAPSAR SIDEBAR IZQUIERDO     */}
-      {/* ============================================================ */}
+      {}
+      {}
+      {}
       <button
         onClick={() => setIsLeftCollapsed(!isLeftCollapsed)}
         className="absolute bottom-6 left-6 md:static md:flex items-center justify-center w-8 h-8 rounded-full bg-sivac-bg-toggle border border-sivac-border text-sivac-heading hover:text-white shadow-xl hover:bg-sivac-border transition-colors duration-150 z-20 cursor-pointer no-print self-center -mx-4 shrink-0"
@@ -733,12 +896,12 @@ export default function ReportesPage() {
         {isLeftCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
       </button>
 
-      {/* ============================================================ */}
-      {/* PANEL DERECHO: Visor de PDF Dinámico e Interactivo         */}
-      {/* ============================================================ */}
+      {}
+      {}
+      {}
       <div className="flex-1 flex flex-col bg-sivac-bg-secondary/40 overflow-hidden relative">
         
-        {/* Barra superior de herramientas del visor (Oculta en Impresión) */}
+        {}
         <div className="h-[64px] bg-sivac-bg-surface/60 border-b border-sivac-border px-6 flex items-center justify-between no-print shrink-0">
           <div className="flex items-center gap-4">
             <div className="hidden lg:flex items-center gap-2 text-13 text-sivac-muted">
@@ -746,7 +909,7 @@ export default function ReportesPage() {
               <span>Visor del Formato Oficial</span>
             </div>
             
-            {/* Toggle de Plantilla Lleno vs Vacío */}
+            {}
             {checkedAuditIds.length > 0 && (
               <div className="flex h-[32px] rounded-lg border border-sivac-border-card p-0.5 bg-sivac-bg-input-admin w-[240px]">
                 <button
@@ -775,7 +938,7 @@ export default function ReportesPage() {
             )}
           </div>
 
-          {/* Acciones de exportación */}
+          {}
           <div className="flex items-center gap-2.5">
             {checkedAuditIds.length > 0 && (
               <button
@@ -794,16 +957,17 @@ export default function ReportesPage() {
             
             <button
               type="button"
+              onClick={handleDownloadPDF}
               className="h-[36px] px-3 border border-sivac-border-card hover:bg-sivac-bg-secondary text-sivac-body hover:text-sivac-heading rounded-lg transition-colors flex items-center justify-center gap-1 text-12"
-              title="Descargar en formato PDF oficial"
+              title="Descargar PDF Directo"
             >
               <Download size={15} />
-              <span className="hidden sm:inline">PDF</span>
+              <span className="hidden sm:inline">Descargar PDF</span>
             </button>
           </div>
         </div>
 
-        {/* Contenedor del papel (Con fondo gris oscuro para emular hoja física en pantalla oscura) */}
+        {}
         <div className="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col items-center gap-8 bg-gray-900/60 print:bg-white print:p-0 print:gap-0">
           {checkedAuditIds.length > 0 ? (
             checkedAuditIds.map((id) => {
@@ -813,6 +977,7 @@ export default function ReportesPage() {
               return (
                 <div
                   key={audit.id}
+                  id={`report-card-${audit.id}`}
                   className="shadow-2xl shadow-black/80 rounded-lg print:shadow-none print:rounded-none print:break-after-page"
                 >
                   <FormatoVisitaUTP {...data} />

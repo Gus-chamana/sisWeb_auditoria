@@ -1,19 +1,19 @@
-// ============================================================
-// SIVAC — Mock de Autenticación y Roles
-// ============================================================
-// INSTRUCCIÓN: Cambia el valor de `ROL_ACTIVO` para simular
-// el comportamiento de la interfaz según cada perfil.
-// Opciones: "Admin" | "Auditor" | "Docente"
-// ============================================================
+
+
+
+
+
+
+
 
 export type UserRole = "Admin" | "Auditor" | "Docente";
 
-// ⬇️ CAMBIAR AQUÍ PARA PROBAR DIFERENTES ROLES ⬇️
+
 export const ROL_ACTIVO: UserRole = "Admin";
 
-// -----------------------------------------------------------
-// Datos simulados del usuario por rol
-// -----------------------------------------------------------
+
+
+
 interface MockUser {
   nombre: string;
   id: string;
@@ -50,19 +50,19 @@ const MOCK_USERS: Record<UserRole, MockUser> = {
   },
 };
 
-/** Usuario activo actual (derivado de ROL_ACTIVO) */
+
 export const currentUser: MockUser = MOCK_USERS[ROL_ACTIVO];
 
-// -----------------------------------------------------------
-// Helpers de permisos
-// -----------------------------------------------------------
 
-/** Verifica si el rol activo tiene acceso a una ruta */
+
+
+
+
 export function tieneAcceso(rolesPermitidos: UserRole[]): boolean {
   return rolesPermitidos.includes(ROL_ACTIVO);
 }
 
-/** Etiqueta visual para el badge del rol */
+
 export function getRolLabel(rol: UserRole): string {
   switch (rol) {
     case "Admin":
@@ -74,7 +74,7 @@ export function getRolLabel(rol: UserRole): string {
   }
 }
 
-/** Color del badge del rol (clases Tailwind) */
+
 export function getRolColor(rol: UserRole): string {
   switch (rol) {
     case "Admin":
