@@ -259,6 +259,19 @@ function EvidenciasContent() {
         if (error) throw error;
       }
       
+      // Update the visit's estado_id if it was pending evidence (estado_id = 4) and now has evidence
+      const { data: vData } = await supabase
+        .from("visitas")
+        .select("estado_id, ultimo_paso_completado, firma_docente_b64")
+        .eq("id", parseInt(selectedVisitId, 10))
+        .maybeSingle();
+
+      if (vData && vData.ultimo_paso_completado === 7 && vData.firma_docente_b64 && vData.firma_docente_b64.trim() !== "") {
+        await supabase
+          .from("visitas")
+          .update({ estado_id: 3 })
+          .eq("id", parseInt(selectedVisitId, 10));
+      }
       
       setShowSuccessToast(true);
       setTimeout(() => setShowSuccessToast(false), 3000);
@@ -279,6 +292,28 @@ function EvidenciasContent() {
         alert("No se pudo eliminar la evidencia: " + error.message);
       } else {
         setEvidences(prev => prev.filter(e => e.id !== id));
+
+        if (selectedVisitId) {
+          const { count, error: countError } = await supabase
+            .from("evidencias_fotos")
+            .select("id", { count: "exact", head: true })
+            .eq("visita_id", parseInt(selectedVisitId, 10));
+
+          if (!countError && count === 0) {
+            const { data: vData } = await supabase
+              .from("visitas")
+              .select("estado_id, ultimo_paso_completado, firma_docente_b64")
+              .eq("id", parseInt(selectedVisitId, 10))
+              .maybeSingle();
+
+            if (vData && vData.ultimo_paso_completado === 7 && vData.firma_docente_b64 && vData.estado_id === 3) {
+              await supabase
+                .from("visitas")
+                .update({ estado_id: 4 })
+                .eq("id", parseInt(selectedVisitId, 10));
+            }
+          }
+        }
       }
     } catch (err) {
       console.error(err);
