@@ -9,6 +9,8 @@ export type UserRole = "Admin" | "Auditor" | "Docente";
 export interface UserProfile {
   id: string;
   nombre: string;
+  nombres: string;
+  apellidos: string;
   rol: UserRole;
   iniciales: string;
   cargo: string;
@@ -21,12 +23,14 @@ interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  updateProfile: (nombres: string, apellidos: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   signOut: async () => {},
+  updateProfile: async () => ({ success: false, error: "Not implemented" }),
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -82,6 +86,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser({
           id: dbUser.id.toString(),
           nombre: nombreCompleto,
+          nombres: dbUser.nombres || "",
+          apellidos: dbUser.apellidos || "",
           rol: rolName,
           iniciales,
           cargo: rolName === "Admin" ? "Administrador" : rolName === "Auditor" ? "Auditor Académico" : "Docente Titular",
@@ -94,6 +100,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser({
           id: "TEMP",
           nombre: session.user.email?.split("@")[0] || "Usuario",
+          nombres: session.user.email?.split("@")[0] || "Usuario",
+          apellidos: "",
           rol: "Docente",
           iniciales: "US",
           cargo: "Docente Titular",
@@ -132,8 +140,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/login");
   };
 
+  const updateProfile = async (nombres: string, apellidos: string) => {
+    if (!user || user.id === "TEMP") {
+      return { success: false, error: "Usuario temporal no puede editar sus datos" };
+    }
+    try {
+      const { error } = await supabase
+        .from("usuarios")
+        .update({
+          nombres: nombres.trim(),
+          apellidos: apellidos.trim(),
+        })
+        .eq("id", parseInt(user.id, 10));
+
+      if (error) throw error;
+
+      await fetchProfile();
+      return { success: true };
+    } catch (err: any) {
+      console.error("Error al actualizar perfil:", err);
+      return { success: false, error: err.message || "Error al actualizar perfil" };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signOut, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
