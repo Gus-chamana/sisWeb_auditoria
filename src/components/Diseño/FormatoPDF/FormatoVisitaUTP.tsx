@@ -1,5 +1,55 @@
 import React from "react";
 
+interface SignatureImageProps {
+  src: string;
+  alt: string;
+  className?: string;
+}
+
+function SignatureImage({ src, alt, className }: SignatureImageProps) {
+  const [blackSrc, setBlackSrc] = React.useState(src);
+
+  React.useEffect(() => {
+    if (!src) return;
+    if (!src.startsWith("data:image")) {
+      setBlackSrc(src);
+      return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        try {
+          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imgData.data;
+          // Convertir píxeles de color a negro, manteniendo la transparencia
+          for (let i = 0; i < data.length; i += 4) {
+            if (data[i + 3] > 0) {
+              data[i] = 0;     // R
+              data[i + 1] = 0;   // G
+              data[i + 2] = 0;   // B
+            }
+          }
+          ctx.putImageData(imgData, 0, 0);
+          setBlackSrc(canvas.toDataURL());
+        } catch (e) {
+          setBlackSrc(src);
+        }
+      }
+    };
+    img.onerror = () => setBlackSrc(src);
+    img.src = src;
+  }, [src]);
+
+  return <img src={blackSrc} alt={alt} className={className} />;
+}
+
 export interface FormatoVisitaUTPProps {
   fechaVisita?: string;
   horaInicio?: string;
@@ -434,11 +484,10 @@ export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
         <div className="grid grid-cols-2 gap-12 text-center">
           <div className="flex flex-col items-center relative min-h-[40px] justify-end">
             {firmaDocenteUrl && (
-              <img
+              <SignatureImage
                 src={firmaDocenteUrl}
                 alt="Firma del Docente"
                 className="h-[30px] w-auto object-contain absolute bottom-[18px] pointer-events-none"
-                style={{ filter: "brightness(0)" }}
               />
             )}
             <div className="w-[160px] border-b border-black mb-1" />
@@ -446,11 +495,10 @@ export function FormatoVisitaUTP(props: FormatoVisitaUTPProps) {
           </div>
           <div className="flex flex-col items-center relative min-h-[40px] justify-end">
             {firmaResponsableUrl && (
-              <img
+              <SignatureImage
                 src={firmaResponsableUrl}
                 alt="Firma del Responsable"
                 className="h-[30px] w-auto object-contain absolute bottom-[18px] pointer-events-none"
-                style={{ filter: "brightness(0)" }}
               />
             )}
             <div className="w-[160px] border-b border-black mb-1" />
