@@ -11,6 +11,7 @@ import { Paso6GuiaPractica } from "@/components/inspecciones/Paso6GuiaPractica";
 import { Paso7Firmas } from "@/components/inspecciones/Paso7Firmas";
 import { AccessGuard } from "@/components/layout/AccessGuard";
 import { useAuth } from "@/lib/AuthContext";
+import { Badge } from "@/components/ui/Badge";
 
 const getLocalTimeString = (): string => {
   const now = new Date();
@@ -728,13 +729,13 @@ export default function InspeccionesPage() {
               </div>
             </div>
 
-            <div className="glass-card p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 rounded-xl bg-white/5 border border-white/10">
+            <div className="glass-card p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 rounded-xl bg-sivac-bg-surface border border-sivac-border-card">
               <div className="space-y-2">
                 <label className="block text-12 font-bold text-sivac-muted tracking-wide-06 uppercase">Sede Académica</label>
                 <select
                   value={formData.sedeFilial}
                   onChange={(e) => updateFormData({ sedeFilial: e.target.value, aula: "" })}
-                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue cursor-pointer"
+                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-sivac-border/50 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue cursor-pointer"
                 >
                   <option value="">Seleccione una sede...</option>
                   {getFilteredSedes().map((s) => (
@@ -750,7 +751,7 @@ export default function InspeccionesPage() {
                 <select
                   value={formData.ciclo}
                   onChange={(e) => updateFormData({ ciclo: e.target.value })}
-                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue cursor-pointer"
+                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-sivac-border/50 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue cursor-pointer"
                 >
                   <option value="">Seleccione un ciclo...</option>
                   {getFilteredCiclos().map((c) => (
@@ -766,7 +767,7 @@ export default function InspeccionesPage() {
                 <select
                   value={formData.turno}
                   onChange={(e) => updateFormData({ turno: e.target.value })}
-                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue cursor-pointer"
+                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-sivac-border/50 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue cursor-pointer"
                 >
                   <option value="">Seleccione un turno...</option>
                   {getFilteredTurnos().map((t) => (
@@ -782,7 +783,7 @@ export default function InspeccionesPage() {
                 <select
                   value={formData.aula}
                   onChange={(e) => updateFormData({ aula: e.target.value })}
-                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue cursor-pointer"
+                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-sivac-border/50 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue cursor-pointer"
                 >
                   <option value="">
                     {formData.sedeFilial ? "Seleccione un aula..." : "Seleccione una sede primero..."}
@@ -800,7 +801,7 @@ export default function InspeccionesPage() {
                 <select
                   value={formData.asignatura}
                   onChange={(e) => updateFormData({ asignatura: e.target.value })}
-                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue cursor-pointer"
+                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-sivac-border/50 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue cursor-pointer"
                 >
                   <option value="">Seleccione una asignatura...</option>
                   {getFilteredAsignaturas().map((asig) => (
@@ -816,7 +817,7 @@ export default function InspeccionesPage() {
                 <select
                   value={formData.semanaNo}
                   onChange={(e) => updateFormData({ semanaNo: e.target.value })}
-                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue"
+                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-sivac-border/50 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue"
                 >
                   <option value="">Seleccione una semana...</option>
                   {Array.from({ length: 16 }, (_, i) => i + 1).map((s) => (
@@ -830,7 +831,7 @@ export default function InspeccionesPage() {
                 <select
                   value={formData.modalidad}
                   onChange={(e) => updateFormData({ modalidad: e.target.value })}
-                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue"
+                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-sivac-border/50 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue"
                 >
                   <option value="">Seleccione una modalidad...</option>
                   <option value="Presencial">Presencial (Laboratorio / Aula)</option>
@@ -844,7 +845,7 @@ export default function InspeccionesPage() {
                 <select
                   value={formData.docenteNombre}
                   onChange={(e) => updateFormData({ docenteNombre: e.target.value })}
-                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue cursor-pointer"
+                  className="h-[44px] w-full px-3.5 bg-sivac-bg-input-admin border border-sivac-border/50 rounded-lg text-14 text-sivac-light outline-none focus:border-sivac-blue cursor-pointer"
                 >
                   <option value="">Seleccione un docente...</option>
                   {getFilteredTeachers().map((t) => {
@@ -893,10 +894,10 @@ export default function InspeccionesPage() {
         </div>
 
         {}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1e3a8a33] border border-[#1e3a8a80] text-[#93c5fd] self-start sm:self-center">
-          <span className="w-2 h-2 rounded-full bg-[#60a5fa] animate-pulse" />
-          <span className="text-12 font-medium">Autoguardado activado</span>
-        </div>
+        <Badge variant="blue" className="self-start sm:self-center">
+          <span className="w-1.5 h-1.5 rounded-full bg-sivac-blue animate-pulse mr-1.5 shrink-0" />
+          Autoguardado activado
+        </Badge>
       </div>
 
       {}
@@ -945,7 +946,7 @@ export default function InspeccionesPage() {
       {}
       {validationError && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn text-sivac-light">
-          <div className="bg-sivac-bg-surface/90 border border-white/10 rounded-2xl p-6 max-w-sm w-full text-center space-y-6 shadow-2xl relative backdrop-blur-xl">
+          <div className="bg-sivac-bg-surface border border-sivac-border-card rounded-2xl p-6 max-w-sm w-full text-center space-y-6 shadow-2xl relative backdrop-blur-xl">
             <div className="w-14 h-14 rounded-full bg-red-500/15 text-red-400 mx-auto flex items-center justify-center border border-red-500/30 shrink-0 animate-pulse">
               <AlertTriangle size={28} />
             </div>
@@ -1006,7 +1007,7 @@ export default function InspeccionesPage() {
       {}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-sivac-bg-surface border border-white/10 rounded-2xl p-8 max-w-md w-full text-center space-y-6 shadow-2xl">
+          <div className="bg-sivac-bg-surface border border-sivac-border-card rounded-2xl p-8 max-w-md w-full text-center space-y-6 shadow-2xl">
             <div className="w-16 h-16 rounded-full bg-sivac-green/15 text-sivac-green mx-auto flex items-center justify-center border border-sivac-green/30">
               <CheckCircle2 size={36} />
             </div>
@@ -1086,7 +1087,7 @@ export default function InspeccionesPage() {
 
         return (
           <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn text-sivac-light">
-            <div className="bg-sivac-bg-surface/80 border border-white/10 rounded-2xl p-6 sm:p-8 max-w-md w-full space-y-6 shadow-2xl relative backdrop-blur-xl">
+            <div className="bg-sivac-bg-surface border border-sivac-border-card rounded-2xl p-6 sm:p-8 max-w-md w-full space-y-6 shadow-2xl relative backdrop-blur-xl">
               
               {}
               <div className="text-center space-y-4">
@@ -1136,13 +1137,13 @@ export default function InspeccionesPage() {
       {}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn text-sivac-light">
-          <div className="bg-sivac-bg-surface/80 border border-white/10 rounded-2xl p-6 sm:p-8 max-w-lg w-full space-y-6 shadow-2xl relative backdrop-blur-xl">
+          <div className="bg-sivac-bg-surface border border-sivac-border-card rounded-2xl p-6 sm:p-8 max-w-lg w-full space-y-6 shadow-2xl relative backdrop-blur-xl">
 
             {}
             <button
               type="button"
               onClick={() => setShowUploadModal(false)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors text-sivac-muted hover:text-sivac-heading cursor-pointer"
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-sivac-bg-toggle hover:bg-sivac-bg-input flex items-center justify-center transition-colors text-sivac-muted hover:text-sivac-heading cursor-pointer border border-sivac-border/20"
             >
               <X size={16} />
             </button>
@@ -1169,7 +1170,7 @@ export default function InspeccionesPage() {
                 id="modal-evidence-section"
                 value={uploadSection}
                 onChange={(e) => setUploadSection(e.target.value)}
-                className="w-full h-[40px] px-3 bg-white/[0.05] border border-white/10 rounded-lg text-13 text-sivac-light focus:outline-none focus:border-sivac-blue cursor-pointer"
+                className="w-full h-[40px] px-3 bg-sivac-bg-input-admin border border-sivac-border/50 rounded-lg text-13 text-sivac-light focus:outline-none focus:border-sivac-blue cursor-pointer"
               >
                 <option value="Inicio de Clases" className="bg-sivac-bg-surface text-sivac-light">Inicio de Clases</option>
                 <option value="Desarrollo Temático" className="bg-sivac-bg-surface text-sivac-light">Desarrollo Temático</option>
@@ -1192,7 +1193,7 @@ export default function InspeccionesPage() {
               className={`relative flex flex-col items-center justify-center gap-3 p-8 rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 ${
                 isDragging
                   ? 'border-sivac-blue bg-sivac-blue/10 shadow-inner shadow-sivac-blue/5'
-                  : 'border-white/15 bg-white/[0.03] hover:border-sivac-blue/50 hover:bg-white/[0.05]'
+                  : 'border-sivac-border/30 bg-sivac-bg-input-admin/60 hover:border-sivac-blue/50 hover:bg-sivac-bg-toggle'
               }`}
             >
               <input
@@ -1208,7 +1209,7 @@ export default function InspeccionesPage() {
                 }}
               />
               <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
-                isDragging ? 'bg-sivac-blue/20 text-sivac-blue' : 'bg-white/5 text-sivac-muted'
+                isDragging ? 'bg-sivac-blue/20 text-sivac-blue' : 'bg-sivac-bg-toggle text-sivac-muted border border-sivac-border/20'
               }`}>
                 <Upload size={24} strokeWidth={1.5} />
               </div>
@@ -1232,7 +1233,7 @@ export default function InspeccionesPage() {
                   {uploadedFiles.map((file, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-12 text-sivac-body"
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sivac-bg-toggle border border-sivac-border/50 text-12 text-sivac-body"
                     >
                       <ImagePlus size={14} className="text-sivac-blue shrink-0" />
                       <span className="truncate max-w-[140px]">{file.name}</span>
@@ -1312,7 +1313,7 @@ export default function InspeccionesPage() {
       {}
       {showEvidenceSuccessModal && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn text-sivac-light">
-          <div className="bg-sivac-bg-surface/80 border border-white/10 rounded-2xl p-6 sm:p-8 max-w-sm w-full text-center space-y-6 shadow-2xl relative backdrop-blur-xl animate-scaleIn">
+          <div className="bg-sivac-bg-surface border border-sivac-border-card rounded-2xl p-6 sm:p-8 max-w-sm w-full text-center space-y-6 shadow-2xl relative backdrop-blur-xl animate-scaleIn">
             <div className="w-16 h-16 rounded-full bg-sivac-green/15 text-sivac-green mx-auto flex items-center justify-center border border-sivac-green/30">
               <CheckCircle2 size={36} />
             </div>

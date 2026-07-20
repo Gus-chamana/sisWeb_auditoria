@@ -48,7 +48,7 @@ export function Paso5AvanceSilabico({ formData, updateFormData }: Paso5AvanceSil
       </div>
 
       {}
-      <div className="glass-card p-6 sm:p-8 space-y-6 rounded-xl bg-white/5 border border-white/10">
+      <div className="glass-card p-6 sm:p-8 space-y-6 rounded-xl bg-sivac-bg-surface border border-sivac-border-card">
         
         {}
         <div className="space-y-6 divide-y divide-white/5">
@@ -64,7 +64,7 @@ export function Paso5AvanceSilabico({ formData, updateFormData }: Paso5AvanceSil
                 </div>
 
                 {}
-                <div className="flex bg-sivac-bg-input-admin/60 border border-white/10 p-0.5 rounded-lg w-full md:w-[240px] shrink-0">
+                <div className="flex bg-sivac-bg-input-admin border border-sivac-border/50 p-0.5 rounded-lg w-full md:w-[240px] shrink-0">
                   <button
                     type="button"
                     onClick={() => updateFormData({ [item.id]: "CUMPLE" })}
@@ -105,7 +105,7 @@ export function Paso5AvanceSilabico({ formData, updateFormData }: Paso5AvanceSil
             value={observacionesSilabo}
             onChange={(e) => updateFormData({ observacionesSilabo: e.target.value })}
             placeholder="Ej. El avance de sílabo coincide plenamente; sin embargo, se recomienda mayor detalle en la descripción de las herramientas utilizadas..."
-            className="w-full p-4 bg-sivac-bg-input-admin border border-white/10 rounded-lg text-sivac-light text-14 outline-none focus:border-sivac-blue placeholder:text-sivac-muted transition-colors font-normal shadow-inner"
+            className="w-full p-4 bg-sivac-bg-input-admin border border-sivac-border/50 rounded-lg text-sivac-light text-14 outline-none focus:border-sivac-blue placeholder:text-sivac-muted transition-colors font-normal shadow-inner"
           />
         </div>
 

@@ -271,7 +271,7 @@ export function Sidebar() {
                 href={item.href}
                 className={`flex items-center justify-between px-4 py-3 rounded-lg text-14 font-medium transition-all group ${
                   isActive
-                    ? "nav-link-active text-[#dbe1ff] border border-sivac-indigo/30 bg-sivac-blue/[0.03]"
+                    ? "nav-link-active text-sivac-indigo border border-sivac-indigo/30 bg-sivac-blue/[0.03]"
                     : "text-sivac-body hover:text-sivac-heading hover:bg-sivac-bg-secondary border border-transparent"
                 }`}
               >
