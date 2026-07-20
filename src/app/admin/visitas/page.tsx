@@ -863,11 +863,11 @@ export default function VisitasPage() {
 
       {}
       {isPdfModalOpen && selectedAudit && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn text-sivac-light">
-          <div className="bg-sivac-bg-surface/95 border border-white/10 rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl relative backdrop-blur-xl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn text-sivac-light">
+          <div className="bg-sivac-bg-surface border border-sivac-border-card rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl relative backdrop-blur-xl">
             
             {}
-            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-sivac-border-card flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-sivac-green animate-pulse" />
                 <h3 className="text-14 font-bold font-poppins text-sivac-heading uppercase tracking-wide">
@@ -881,7 +881,7 @@ export default function VisitasPage() {
                     setIsPdfModalOpen(false);
                     setSelectedAudit(null);
                   }}
-                  className="p-1.5 hover:bg-white/10 rounded-lg text-sivac-muted hover:text-sivac-light transition-colors cursor-pointer"
+                  className="p-1.5 hover:bg-sivac-bg-toggle rounded-lg text-sivac-muted hover:text-sivac-heading transition-colors cursor-pointer"
                 >
                   <X size={20} />
                 </button>
@@ -889,8 +889,8 @@ export default function VisitasPage() {
             </div>
 
             {}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 bg-[#1e1e1e] scrollbar-thin">
-              <div id="pdf-modal-content" className="mx-auto max-w-[800px] bg-[#1e1e1e]">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 bg-sivac-bg-primary scrollbar-thin">
+              <div id="pdf-modal-content" className="mx-auto max-w-[800px] bg-sivac-bg-primary">
                 <FormatoVisitaUTP {...getReportData(selectedAudit)} />
               </div>
             </div>

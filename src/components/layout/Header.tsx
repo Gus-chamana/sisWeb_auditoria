@@ -3,18 +3,25 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Bell, ChevronDown, Lock, LogOut, Loader2, X, Eye, EyeOff, Sun, Moon } from "lucide-react";
+import { Search, Bell, ChevronDown, Lock, LogOut, Loader2, X, Eye, EyeOff, Sun, Moon, User } from "lucide-react";
 import { getRolLabel, getRolColor } from "@/lib/auth";
 import { useAuth } from "@/lib/AuthContext";
 import { useTheme } from "@/lib/ThemeContext";
 
 export function Header() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, updateProfile } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+
+  const [profileNombres, setProfileNombres] = useState("");
+  const [profileApellidos, setProfileApellidos] = useState("");
+  const [profileError, setProfileError] = useState("");
+  const [profileSuccess, setProfileSuccess] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -37,6 +44,13 @@ export function Header() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    if (user && showProfileModal) {
+      setProfileNombres(user.nombres || "");
+      setProfileApellidos(user.apellidos || "");
+    }
+  }, [showProfileModal, user]);
 
   const getLastActivityTime = (v: any) => {
     let lastTime = new Date(v.created_at).getTime();
@@ -164,6 +178,35 @@ export function Header() {
     }
   };
 
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profileNombres.trim() || !profileApellidos.trim()) {
+      setProfileError("Por favor completa todos los campos.");
+      return;
+    }
+
+    try {
+      setSavingProfile(true);
+      setProfileError("");
+      setProfileSuccess("");
+
+      const result = await updateProfile(profileNombres, profileApellidos);
+      if (result.success) {
+        setProfileSuccess("Datos actualizados con éxito.");
+        setTimeout(() => {
+          setShowProfileModal(false);
+          setProfileSuccess("");
+        }, 1500);
+      } else {
+        setProfileError(result.error || "Ocurrió un error al actualizar.");
+      }
+    } catch (err: any) {
+      setProfileError(err.message || "Error al actualizar perfil.");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   if (loading || !user) {
     return (
       <header className="h-[72px] bg-sivac-bg-primary border-b border-sivac-border flex items-center justify-between px-8 sticky top-0 z-20 font-inter animate-pulse">
@@ -267,6 +310,18 @@ export function Header() {
 
               {}
               <div className="px-1.5 space-y-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDropdown(false);
+                    setShowProfileModal(true);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-13 font-medium text-sivac-body hover:text-sivac-heading hover:bg-sivac-bg-secondary transition-all text-left cursor-pointer"
+                >
+                  <User size={15} className="text-sivac-muted" />
+                  Mis Datos
+                </button>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -408,6 +463,94 @@ export function Header() {
                     </>
                   ) : (
                     "Actualizar"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {showProfileModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-sivac-bg-surface border border-sivac-border rounded-xl shadow-2xl overflow-hidden font-inter animate-in zoom-in-95 duration-150">
+            {}
+            <div className="px-6 py-4 border-b border-sivac-border flex items-center justify-between bg-sivac-bg-primary">
+              <h3 className="text-16 font-bold font-poppins text-sivac-light flex items-center gap-2">
+                <User size={18} className="text-sivac-blue" />
+                Modificar Mis Datos
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProfileModal(false);
+                  setProfileError("");
+                  setProfileSuccess("");
+                }}
+                className="text-sivac-muted hover:text-sivac-light transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {}
+            <form onSubmit={handleUpdateProfile} className="p-6 space-y-4">
+              {profileError && (
+                <div className="p-3 text-12 text-red-500 bg-red-500/10 border border-red-500/20 rounded-lg font-medium">
+                  {profileError}
+                </div>
+              )}
+              {profileSuccess && (
+                <div className="p-3 text-12 text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-lg font-medium">
+                  {profileSuccess}
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="block text-12 font-bold text-sivac-body">Nombres</label>
+                <input
+                  type="text"
+                  value={profileNombres}
+                  onChange={(e) => setProfileNombres(e.target.value)}
+                  className="input-admin w-full h-[40px] px-3.5 text-14 bg-sivac-bg-input-admin border border-sivac-border/50 text-sivac-light placeholder:text-sivac-muted focus:border-sivac-blue"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-12 font-bold text-sivac-body">Apellidos</label>
+                <input
+                  type="text"
+                  value={profileApellidos}
+                  onChange={(e) => setProfileApellidos(e.target.value)}
+                  className="input-admin w-full h-[40px] px-3.5 text-14 bg-sivac-bg-input-admin border border-sivac-border/50 text-sivac-light placeholder:text-sivac-muted focus:border-sivac-blue"
+                  required
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfileModal(false);
+                    setProfileError("");
+                    setProfileSuccess("");
+                  }}
+                  className="px-4 py-2 border border-sivac-border text-sivac-body text-13 font-semibold rounded-lg hover:bg-sivac-bg-secondary hover:text-sivac-heading transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingProfile}
+                  className="px-5 py-2 bg-sivac-blue hover:bg-blue-700 disabled:opacity-50 text-white text-13 font-semibold rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  {savingProfile ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <span>Guardar Cambios</span>
                   )}
                 </button>
               </div>
