@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Info, ArrowLeft, ArrowRight, Save, CheckCircle2, ImagePlus, Upload, X, AlertTriangle } from "lucide-react";
+import React, { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Info, ArrowLeft, ArrowRight, Save, CheckCircle2, ImagePlus, Upload, X, AlertTriangle, Loader2 } from "lucide-react";
 import { Paso2ControlDocente } from "@/components/inspecciones/Paso2ControlDocente";
 import { Paso3MaterialVirtual } from "@/components/inspecciones/Paso3MaterialVirtual";
 import { Paso4Asistencia } from "@/components/inspecciones/Paso4Asistencia";
@@ -36,8 +36,10 @@ const parseAsistenciaObs = (rawObs: string) => {
 
 let activeCreationPromise: Promise<number | null> | null = null;
 
-export default function InspeccionesPage() {
+function InspeccionesContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchVisitaId = searchParams.get("visitaId");
   const [currentStep, setCurrentStep] = useState(1);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -148,126 +150,7 @@ export default function InspeccionesPage() {
   };
 
   
-  React.useEffect(() => {
-    async function loadData() {
-      try {
-        const { createClient } = await import("@/utils/supabase/client");
-        const supabase = createClient();
-        
-        const [resTeachers, resSedes, resCiclos, resTurnos, resAulas, resAsignaturas] = await Promise.all([
-          supabase.from("usuarios").select("id, nombres, apellidos").eq("rol_id", 3).order("nombres"),
-          supabase.from("sedes").select("id, nombre").order("nombre"),
-          supabase.from("ciclos").select("id, nombre").order("nombre"),
-          supabase.from("turnos").select("id, nombre").order("nombre"),
-          supabase.from("aulas").select("id, nombre, sede_id").order("nombre"),
-          supabase.from("asignaturas").select("id, nombre").order("nombre"),
-        ]);
-
-        if (resTeachers.data) setTeachers(resTeachers.data);
-        if (resSedes.data) setSedes(resSedes.data);
-        if (resCiclos.data) setCiclos(resCiclos.data);
-        if (resTurnos.data) setTurnos(resTurnos.data);
-        if (resAulas.data) setAulas(resAulas.data);
-        if (resAsignaturas.data) setAsignaturas(resAsignaturas.data);
-
-        
-        const params = new URLSearchParams(window.location.search);
-        const idParam = params.get("visitaId");
-        if (!idParam) {
-          let currentVisitaId: number | null = null;
-          if (activeCreationPromise) {
-            currentVisitaId = await activeCreationPromise;
-          } else {
-            activeCreationPromise = (async () => {
-              try {
-                let auditorId = 2;
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session?.user?.email) {
-                  const { data: dbUser } = await supabase
-                    .from("usuarios")
-                    .select("id")
-                    .eq("username", session.user.email)
-                    .maybeSingle();
-                  if (dbUser) {
-                    auditorId = dbUser.id;
-                  }
-                }
-
-                const cicloParam = params.get("ciclo");
-                const turnoParam = params.get("turno");
-                const semanaNoParam = params.get("semanaNo");
-
-                const { data: newVisita, error } = await supabase
-                  .from("visitas")
-                  .insert({
-                    auditor_id: auditorId,
-                    fecha_visita: new Date().toISOString().split("T")[0],
-                    hora_inicio_real: getLocalTimeString(),
-                    estado_id: 2, 
-                    ultimo_paso_completado: 1,
-                    ciclo: cicloParam || null,
-                    turno: turnoParam || null,
-                    semana_nro: semanaNoParam ? parseInt(semanaNoParam, 10) : null,
-                  })
-                  .select("id")
-                  .single();
-
-                if (!error && newVisita) {
-                  return newVisita.id;
-                }
-              } catch (e) {
-                console.error("Error al crear visita:", e);
-              }
-              return null;
-            })();
-
-            currentVisitaId = await activeCreationPromise;
-            activeCreationPromise = null;
-          }
-
-          if (currentVisitaId) {
-            setVisitaId(currentVisitaId);
-            window.history.replaceState(null, "", `?visitaId=${currentVisitaId}`);
-          }
-        }
-      } catch (err) {
-        console.error("Error al cargar catálogos e inicializar visita:", err);
-      }
-    }
-    loadData();
-
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const idParam = params.get("visitaId");
-      
-      if (idParam) {
-        const vid = parseInt(idParam, 10);
-        setVisitaId(vid);
-        fetchVisitaData(vid);
-      } else {
-        const sede = params.get("sedeFilial");
-        const ciclo = params.get("ciclo");
-        const turno = params.get("turno");
-        const aula = params.get("aula");
-        const asignatura = params.get("asignatura");
-        const docente = params.get("docenteNombre");
-
-        if (sede || ciclo || turno || aula || asignatura || docente) {
-          setFormData((prev) => ({
-            ...prev,
-            sedeFilial: sede || prev.sedeFilial,
-            ciclo: ciclo || prev.ciclo,
-            turno: turno || prev.turno,
-            aula: aula || prev.aula,
-            asignatura: asignatura || prev.asignatura,
-            docenteNombre: docente || prev.docenteNombre,
-          }));
-        }
-      }
-    }
-  }, []);
-
-  const fetchVisitaData = async (vid: number) => {
+  const fetchVisitaData = React.useCallback(async (vid: number) => {
     try {
       const { createClient } = await import("@/utils/supabase/client");
       const supabase = createClient();
@@ -317,6 +200,8 @@ export default function InspeccionesPage() {
 
       if (fotos && fotos.length > 0) {
         setHasEvidences(true);
+      } else {
+        setHasEvidences(false);
       }
 
       const parsedAsistencia = parseAsistenciaObs(evalAsistencia?.observaciones || "");
@@ -380,7 +265,155 @@ export default function InspeccionesPage() {
     } catch (err) {
       console.error("Error al recuperar datos de la visita:", err);
     }
-  };
+  }, []);
+
+  React.useEffect(() => {
+    async function loadCatalogs() {
+      try {
+        const { createClient } = await import("@/utils/supabase/client");
+        const supabase = createClient();
+        
+        const [resTeachers, resSedes, resCiclos, resTurnos, resAulas, resAsignaturas] = await Promise.all([
+          supabase.from("usuarios").select("id, nombres, apellidos").eq("rol_id", 3).order("nombres"),
+          supabase.from("sedes").select("id, nombre").order("nombre"),
+          supabase.from("ciclos").select("id, nombre").order("nombre"),
+          supabase.from("turnos").select("id, nombre").order("nombre"),
+          supabase.from("aulas").select("id, nombre, sede_id").order("nombre"),
+          supabase.from("asignaturas").select("id, nombre").order("nombre"),
+        ]);
+
+        if (resTeachers.data) setTeachers(resTeachers.data);
+        if (resSedes.data) setSedes(resSedes.data);
+        if (resCiclos.data) setCiclos(resCiclos.data);
+        if (resTurnos.data) setTurnos(resTurnos.data);
+        if (resAulas.data) setAulas(resAulas.data);
+        if (resAsignaturas.data) setAsignaturas(resAsignaturas.data);
+      } catch (err) {
+        console.error("Error al cargar catálogos:", err);
+      }
+    }
+    loadCatalogs();
+  }, []);
+
+  React.useEffect(() => {
+    async function initializeVisita() {
+      try {
+        const { createClient } = await import("@/utils/supabase/client");
+        const supabase = createClient();
+
+        if (searchVisitaId) {
+          const vid = parseInt(searchVisitaId, 10);
+          if (visitaId !== vid) {
+            setVisitaId(vid);
+            fetchVisitaData(vid);
+          }
+        } else {
+          setVisitaId(null);
+          setCurrentStep(1);
+          setHasEvidences(false);
+          
+          const sede = searchParams.get("sedeFilial") || "";
+          const ciclo = searchParams.get("ciclo") || "";
+          const turno = searchParams.get("turno") || "";
+          const aula = searchParams.get("aula") || "";
+          const asignatura = searchParams.get("asignatura") || "";
+          const docente = searchParams.get("docenteNombre") || "";
+          const semanaNo = searchParams.get("semanaNo") || "";
+
+          setFormData({
+            sedeFilial: sede,
+            ciclo: ciclo,
+            turno: turno,
+            aula: aula,
+            asignatura: asignatura,
+            semanaNo: semanaNo,
+            modalidad: "",
+            docenteNombre: docente,
+            docentePresente: "",
+            horarioProgramado: "",
+            interaccion: "",
+            observacionesAusencia: "",
+            actividadDocente: "",
+            materialCargado: "",
+            observacionesMaterial: "",
+            alumnosAmbiente: "",
+            alumnosIntranet: "",
+            observacionesAsistencia: "",
+            silaboCoincide: "",
+            temaAnteriorCoincide: "",
+            ingresoSilaboVirtual: "",
+            observacionesSilabo: "",
+            guiaPractica: "",
+            logroMedir: "",
+            rubricaEvaluacion: "",
+            observacionesGuia: "",
+            firmaDocenteUrl: ""
+          });
+
+          let currentVisitaId: number | null = null;
+          if (activeCreationPromise) {
+            currentVisitaId = await activeCreationPromise;
+          } else {
+            activeCreationPromise = (async () => {
+              try {
+                let auditorId = 2;
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user?.email) {
+                  const { data: dbUser } = await supabase
+                    .from("usuarios")
+                    .select("id")
+                    .eq("username", session.user.email)
+                    .maybeSingle();
+                  if (dbUser) {
+                    auditorId = dbUser.id;
+                  }
+                }
+
+                const cicloParam = searchParams.get("ciclo");
+                const turnoParam = searchParams.get("turno");
+                const semanaNoParam = searchParams.get("semanaNo");
+
+                const { data: newVisita, error } = await supabase
+                  .from("visitas")
+                  .insert({
+                    auditor_id: auditorId,
+                    fecha_visita: new Date().toISOString().split("T")[0],
+                    hora_inicio_real: getLocalTimeString(),
+                    estado_id: 2, 
+                    ultimo_paso_completado: 1,
+                    ciclo: cicloParam || null,
+                    turno: turnoParam || null,
+                    semana_nro: semanaNoParam ? parseInt(semanaNoParam, 10) : null,
+                  })
+                  .select("id")
+                  .single();
+
+                if (!error && newVisita) {
+                  return newVisita.id;
+                }
+              } catch (e) {
+                console.error("Error al crear visita:", e);
+              }
+              return null;
+            })();
+
+            currentVisitaId = await activeCreationPromise;
+            activeCreationPromise = null;
+          }
+
+          if (currentVisitaId) {
+            setVisitaId(currentVisitaId);
+            const newParams = new URLSearchParams(window.location.search);
+            newParams.set("visitaId", currentVisitaId.toString());
+            window.history.replaceState(null, "", `?${newParams.toString()}`);
+          }
+        }
+      } catch (err) {
+        console.error("Error al inicializar visita:", err);
+      }
+    }
+    initializeVisita();
+  }, [searchVisitaId, searchParams, visitaId, fetchVisitaData]);
 
   const cumpleIdMap = (val: string) => {
     if (val === "CUMPLE") return 1;
@@ -1392,5 +1425,18 @@ export default function InspeccionesPage() {
       )}
     </div>
     </AccessGuard>
+  );
+}
+
+export default function InspeccionesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center py-20 space-y-2">
+        <Loader2 className="text-sivac-blue animate-spin" size={32} />
+        <p className="text-12 text-sivac-muted">Cargando inspección...</p>
+      </div>
+    }>
+      <InspeccionesContent />
+    </Suspense>
   );
 }
