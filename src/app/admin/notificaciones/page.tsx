@@ -128,11 +128,13 @@ export default function NotificacionesPage() {
 
           
           try {
+            if (!user) return;
+            const storageKey = `sivac_read_notifications_user_${user.id}`;
             const readMap: Record<number, number> = {};
             sorted.forEach((v) => {
               readMap[v.id] = getLastActivityTime(v);
             });
-            localStorage.setItem("sivac_read_notifications", JSON.stringify(readMap));
+            localStorage.setItem(storageKey, JSON.stringify(readMap));
           } catch (e) {
             console.error("Error saving read notifications map:", e);
           }

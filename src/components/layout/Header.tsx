@@ -91,8 +91,9 @@ export function Header() {
         }
 
         const { data, error } = await query;
-        if (!error && data) {
-          const readMapStr = localStorage.getItem("sivac_read_notifications");
+        if (!error && data && user) {
+          const storageKey = `sivac_read_notifications_user_${user.id}`;
+          const readMapStr = localStorage.getItem(storageKey);
           const readMap = readMapStr ? JSON.parse(readMapStr) : {};
 
           
